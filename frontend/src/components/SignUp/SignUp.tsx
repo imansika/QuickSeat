@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Mail, Lock, User, Phone, Bus } from 'lucide-react';
+import { Eye, EyeOff, Bus } from 'lucide-react';
 
 interface SignUpProps {
   onSignIn: () => void;
@@ -32,18 +32,16 @@ export function SignUp({ onSignIn }: SignUpProps) {
       <div className="w-full max-w-6xl bg-white rounded-3xl shadow-2xl overflow-hidden flex">
         {/* Left Side - Creative Design Panel */}
         <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#264b8d] to-[#1e3a6d] flex-col items-center justify-center p-8 xl:p-12 relative overflow-hidden">
-        {/* Background decorative elements */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-1/4 w-48 h-48 border-2 border-[#dfae6b] rounded-full"></div>
-          <div className="absolute bottom-10 right-1/4 w-40 h-40 border-2 border-white/50 rounded-full"></div>
-          <div className="absolute top-1/3 right-0 w-32 h-32 border border-[#dfae6b]/50 rounded-full"></div>
-        </div>
-
         {/* Content */}
         <div className="relative z-10 text-center max-w-md">
           {/* Welcome Icon */}
           <div className="flex justify-center mb-10">
-            <div className="text-6xl">✨</div>
+            <div className="relative">
+              <div className="absolute inset-0 bg-[#dfae6b] blur-2xl opacity-30 rounded-full"></div>
+              <div className="relative bg-white/20 backdrop-blur-sm p-6 rounded-2xl border-2 border-white/30">
+                <Bus className="w-12 h-12 text-white" strokeWidth={2} />
+              </div>
+            </div>
           </div>
 
           <h1 className="text-5xl font-bold text-white mb-6 leading-tight">
@@ -58,7 +56,11 @@ export function SignUp({ onSignIn }: SignUpProps) {
           {/* Feature Cards */}
           <div className="space-y-3 mb-10">
             <div className="flex items-center gap-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4 hover:bg-white/15 transition">
-              <div className="text-2xl flex-shrink-0">⚡</div>
+              <div className="w-10 h-10 flex items-center justify-center bg-[#dfae6b]/20 rounded-xl flex-shrink-0">
+                <svg className="w-6 h-6 text-[#dfae6b]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
               <div className="text-left">
                 <p className="text-white font-semibold text-sm">Instant Booking</p>
                 <p className="text-white/70 text-xs">Reserve in seconds</p>
@@ -66,7 +68,11 @@ export function SignUp({ onSignIn }: SignUpProps) {
             </div>
 
             <div className="flex items-center gap-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4 hover:bg-white/15 transition">
-              <div className="text-2xl flex-shrink-0">🛡️</div>
+              <div className="w-10 h-10 flex items-center justify-center bg-[#dfae6b]/20 rounded-xl flex-shrink-0">
+                <svg className="w-6 h-6 text-[#dfae6b]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              </div>
               <div className="text-left">
                 <p className="text-white font-semibold text-sm">Secure & Safe</p>
                 <p className="text-white/70 text-xs">Bank-grade encryption</p>
@@ -74,10 +80,14 @@ export function SignUp({ onSignIn }: SignUpProps) {
             </div>
 
             <div className="flex items-center gap-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4 hover:bg-white/15 transition">
-              <div className="text-2xl flex-shrink-0">🎁</div>
+              <div className="w-10 h-10 flex items-center justify-center bg-[#dfae6b]/20 rounded-xl flex-shrink-0">
+                <svg className="w-6 h-6 text-[#dfae6b]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+              </div>
               <div className="text-left">
-                <p className="text-white font-semibold text-sm">Welcome Bonus</p>
-                <p className="text-white/70 text-xs">Get Rs. 200 credit today</p>
+                <p className="text-white font-semibold text-sm">Real-time Updates</p>
+                <p className="text-white/70 text-xs">Track your journey live</p>
               </div>
             </div>
           </div>
@@ -88,15 +98,15 @@ export function SignUp({ onSignIn }: SignUpProps) {
             <ul className="text-white/80 text-xs space-y-2 text-left">
               <li className="flex items-center gap-2">
                 <span className="text-[#dfae6b]">✓</span>
-                <span>No credit card required</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="text-[#dfae6b]">✓</span>
                 <span>Instant confirmation & e-tickets</span>
               </li>
               <li className="flex items-center gap-2">
                 <span className="text-[#dfae6b]">✓</span>
-                <span>Cancel anytime, anywhere</span>
+                <span>24/7 customer support</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-[#dfae6b]">✓</span>
+                <span>Best price guarantee</span>
               </li>
             </ul>
           </div>
@@ -126,19 +136,16 @@ export function SignUp({ onSignIn }: SignUpProps) {
               <label htmlFor="fullName" className="block text-sm font-medium text-slate-900">
                 Full Name
               </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" strokeWidth={1.5} />
-                <input
-                  id="fullName"
-                  name="fullName"
-                  type="text"
-                  placeholder="John Doe"
-                  value={formData.fullName}
-                  onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#264b8d] focus:border-transparent transition"
-                  required
-                />
-              </div>
+              <input
+                id="fullName"
+                name="fullName"
+                type="text"
+                placeholder="John Doe"
+                value={formData.fullName}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#264b8d] focus:border-transparent transition"
+                required
+              />
             </div>
 
             {/* Email */}
@@ -146,19 +153,16 @@ export function SignUp({ onSignIn }: SignUpProps) {
               <label htmlFor="email" className="block text-sm font-medium text-slate-900">
                 Email Address
               </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" strokeWidth={1.5} />
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#264b8d] focus:border-transparent transition"
-                  required
-                />
-              </div>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="you@example.com"
+                value={formData.email}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#264b8d] focus:border-transparent transition"
+                required
+              />
             </div>
 
             {/* Phone */}
@@ -166,19 +170,16 @@ export function SignUp({ onSignIn }: SignUpProps) {
               <label htmlFor="phone" className="block text-sm font-medium text-slate-900">
                 Phone Number
               </label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" strokeWidth={1.5} />
-                <input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  placeholder="+94 71 234 5678"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#264b8d] focus:border-transparent transition"
-                  required
-                />
-              </div>
+              <input
+                id="phone"
+                name="phone"
+                type="tel"
+                placeholder="+94 71 234 5678"
+                value={formData.phone}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#264b8d] focus:border-transparent transition"
+                required
+              />
             </div>
 
             {/* Password */}
@@ -187,7 +188,6 @@ export function SignUp({ onSignIn }: SignUpProps) {
                 Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" strokeWidth={1.5} />
                 <input
                   id="password"
                   name="password"
@@ -195,7 +195,7 @@ export function SignUp({ onSignIn }: SignUpProps) {
                   placeholder="••••••••"
                   value={formData.password}
                   onChange={handleChange}
-                  className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#264b8d] focus:border-transparent transition"
+                  className="w-full px-4 pr-10 py-2.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#264b8d] focus:border-transparent transition"
                   required
                 />
                 <button
@@ -214,7 +214,6 @@ export function SignUp({ onSignIn }: SignUpProps) {
                 Confirm Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" strokeWidth={1.5} />
                 <input
                   id="confirmPassword"
                   name="confirmPassword"
@@ -222,7 +221,7 @@ export function SignUp({ onSignIn }: SignUpProps) {
                   placeholder="••••••••"
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#264b8d] focus:border-transparent transition"
+                  className="w-full px-4 pr-10 py-2.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#264b8d] focus:border-transparent transition"
                   required
                 />
                 <button

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Mail, Lock, Bus } from 'lucide-react';
+import { Eye, EyeOff, Bus } from 'lucide-react';
 
 interface SignInProps {
   onSignUp: () => void;
@@ -21,17 +21,16 @@ export function SignIn({ onSignUp }: SignInProps) {
       <div className="w-full max-w-6xl bg-white rounded-3xl shadow-2xl overflow-hidden flex">
         {/* Left Side - Creative Design Panel */}
         <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#264b8d] to-[#1e3a6d] flex-col items-center justify-center p-8 xl:p-12 relative overflow-hidden">
-          {/* Background decorative elements */}
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-10 right-10 w-40 h-40 border-2 border-white rounded-full"></div>
-            <div className="absolute bottom-20 left-10 w-32 h-32 border-2 border-white/50 rounded-full"></div>
-          </div>
-
           {/* Content */}
           <div className="relative z-10 text-center max-w-md">
             {/* Journey Illustration */}
             <div className="flex justify-center mb-10">
-              <div className="text-6xl">🚌</div>
+              <div className="relative">
+                <div className="absolute inset-0 bg-[#dfae6b] blur-2xl opacity-30 rounded-full"></div>
+                <div className="relative bg-white/20 backdrop-blur-sm p-6 rounded-2xl border-2 border-white/30">
+                  <Bus className="w-12 h-12 text-white" strokeWidth={2} />
+                </div>
+              </div>
             </div>
 
             <h1 className="text-5xl font-bold text-white mb-6 leading-tight">
@@ -47,20 +46,28 @@ export function SignIn({ onSignUp }: SignInProps) {
             <div className="space-y-3 mb-10">
               <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4 hover:bg-white/15 transition">
                 <div className="flex items-center gap-3">
-                  <div className="text-3xl">50K+</div>
+                  <div className="w-10 h-10 flex items-center justify-center bg-[#dfae6b]/20 rounded-xl flex-shrink-0">
+                    <svg className="w-6 h-6 text-[#dfae6b]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                  </div>
                   <div className="text-left">
                     <p className="text-white font-semibold text-sm">Happy Travelers</p>
-                    <p className="text-white/70 text-xs">Across Sri Lanka</p>
+                    <p className="text-white/70 text-xs">50K+ Across Sri Lanka</p>
                   </div>
                 </div>
               </div>
 
               <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4 hover:bg-white/15 transition">
                 <div className="flex items-center gap-3">
-                  <div className="text-3xl">200+</div>
+                  <div className="w-10 h-10 flex items-center justify-center bg-[#dfae6b]/20 rounded-xl flex-shrink-0">
+                    <svg className="w-6 h-6 text-[#dfae6b]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                    </svg>
+                  </div>
                   <div className="text-left">
                     <p className="text-white font-semibold text-sm">Routes Available</p>
-                    <p className="text-white/70 text-xs">Reliable coverage</p>
+                    <p className="text-white/70 text-xs">200+ Reliable coverage</p>
                   </div>
                 </div>
               </div>
@@ -101,18 +108,15 @@ export function SignIn({ onSignUp }: SignInProps) {
                 <label htmlFor="email" className="block text-sm font-medium text-slate-900">
                   Email Address
                 </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" strokeWidth={1.5} />
-                  <input
-                    id="email"
-                    type="email"
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#264b8d] focus:border-transparent transition"
-                    required
-                  />
-                </div>
+                <input
+                  id="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#264b8d] focus:border-transparent transition"
+                  required
+                />
               </div>
 
               {/* Password */}
@@ -121,14 +125,13 @@ export function SignIn({ onSignUp }: SignInProps) {
                   Password
                 </label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" strokeWidth={1.5} />
                   <input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#264b8d] focus:border-transparent transition"
+                    className="w-full px-4 pr-10 py-2.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#264b8d] focus:border-transparent transition"
                     required
                   />
                   <button

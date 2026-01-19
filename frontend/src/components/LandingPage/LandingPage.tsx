@@ -71,7 +71,14 @@ export function LandingPage({ onSignIn, onSignUp, onOperatorLogin }: LandingPage
                 QuickSeat
               </span>
             </div>
-            <div className="flex items-center gap-3">
+
+            <div className="flex items-center gap-8">
+              <a href="#about" className="hidden md:inline text-slate-700 hover:text-[#264b8d] font-medium transition-colors">
+                About Us
+              </a>
+              <a href="#contact" className="hidden md:inline text-slate-700 hover:text-[#264b8d] font-medium transition-colors">
+                Contact
+              </a>
               <button
                 onClick={onSignIn}
                 className="px-5 py-2.5 text-slate-700 hover:text-[#264b8d] font-medium transition-colors"
@@ -103,54 +110,54 @@ export function LandingPage({ onSignIn, onSignUp, onOperatorLogin }: LandingPage
         </div>
 
         {/* Content - Centered */}
-        <div className="relative h-full w-full px-4 sm:px-6 lg:px-12 xl:px-16">
+        <div className="relative h-full w-full px-4 sm:px-6 lg:px-12 xl:px-20 2xl:px-32">
           <div className="flex items-center justify-center h-full">
-            <div className="max-w-3xl text-center space-y-6">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full">
-                <Sparkles className="w-4 h-4 text-[#dfae6b]" />
-                <span className="text-sm font-medium text-white">Trusted by 50,000+ travelers across Sri Lanka</span>
+            <div className="max-w-5xl text-center space-y-8">
+              <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full">
+                <Sparkles className="w-5 h-5 text-[#dfae6b]" />
+                <span className="text-base font-medium text-white">Trusted by 50,000+ travelers across Sri Lanka</span>
               </div>
               
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight">
+              <h1 className="text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold text-white leading-tight">
                 Book Your
-                <span className="block text-[#dfae6b]">
+                <span className="block text-[#dfae6b] mt-2">
                   Perfect Journey
                 </span>
               </h1>
               
-              <p className="text-lg md:text-xl text-white/90 leading-relaxed">
+              <p className="text-xl md:text-2xl lg:text-3xl text-white/90 leading-relaxed max-w-4xl mx-auto">
                 Experience seamless bus travel with real-time bookings, smart seat selection, and instant e-tickets.
               </p>
               
-              <div className="flex flex-wrap gap-4 pt-2 justify-center">
+              <div className="flex flex-wrap gap-6 pt-4 justify-center">
                 <button
                   onClick={onSignUp}
-                  className="group px-8 py-4 bg-[#264b8d] text-white rounded-xl font-semibold text-lg hover:bg-[#1e3a6d] hover:shadow-xl transition-all duration-300 flex items-center gap-2"
+                  className="group px-10 py-5 bg-[#264b8d] text-white rounded-xl font-semibold text-xl hover:bg-[#1e3a6d] hover:shadow-xl transition-all duration-300 flex items-center gap-3"
                 >
                   Start Booking Now
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
                 </button>
                 <button
                   onClick={onSignIn}
-                  className="px-8 py-4 bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white rounded-xl font-semibold text-lg hover:bg-white/20 transition-all duration-300"
+                  className="px-10 py-5 bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white rounded-xl font-semibold text-xl hover:bg-white/20 transition-all duration-300"
                 >
                   Explore Features
                 </button>
               </div>
 
               {/* Trust indicators */}
-              <div className="flex flex-wrap items-center justify-center gap-6 pt-2">
+              <div className="flex flex-wrap items-center justify-center gap-8 pt-6">
                 <div className="flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5 text-[#dfae6b]" />
-                  <span className="text-white/90">Instant Confirmation</span>
+                  <CheckCircle className="w-6 h-6 text-[#dfae6b]" />
+                  <span className="text-lg text-white/90">Instant Confirmation</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5 text-[#dfae6b]" />
-                  <span className="text-white/90">Secure Payment</span>
+                  <CheckCircle className="w-6 h-6 text-[#dfae6b]" />
+                  <span className="text-lg text-white/90">Secure Payment</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5 text-[#dfae6b]" />
-                  <span className="text-white/90">24/7 Support</span>
+                  <CheckCircle className="w-6 h-6 text-[#dfae6b]" />
+                  <span className="text-lg text-white/90">24/7 Support</span>
                 </div>
               </div>
             </div>
@@ -159,13 +166,13 @@ export function LandingPage({ onSignIn, onSignUp, onOperatorLogin }: LandingPage
       </div>
 
       {/* Stats Section */}
-      <div className="bg-[#264b8d] py-16">
-        <div className="w-full px-4 sm:px-6 lg:px-12 xl:px-16">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+      <div className="bg-[#264b8d] py-20">
+        <div className="w-full px-4 sm:px-6 lg:px-12 xl:px-20 2xl:px-32">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-12">
             {stats.map((stat, index) => (
               <div key={index} className="text-center">
-                <div className="text-4xl md:text-5xl font-bold text-white mb-2">{stat.value}</div>
-                <div className="text-white/80">{stat.label}</div>
+                <div className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-3">{stat.value}</div>
+                <div className="text-lg md:text-xl text-white/80">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -173,20 +180,20 @@ export function LandingPage({ onSignIn, onSignUp, onOperatorLogin }: LandingPage
       </div>
 
       {/* Features Section */}
-      <div className="py-24 bg-slate-50">
-        <div className="w-full px-4 sm:px-6 lg:px-12 xl:px-16">
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#dfae6b]/10 border border-[#dfae6b]/20 rounded-full mb-6">
-              <Award className="w-4 h-4 text-[#dfae6b]" />
-              <span className="text-sm font-medium text-[#dfae6b]">Why Choose Us</span>
+      <div className="py-28 bg-slate-50">
+        <div className="w-full px-4 sm:px-6 lg:px-12 xl:px-20 2xl:px-32">
+          <div className="text-center mb-20">
+            <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#dfae6b]/10 border border-[#dfae6b]/20 rounded-full mb-8">
+              <Award className="w-5 h-5 text-[#dfae6b]" />
+              <span className="text-base font-medium text-[#dfae6b]">Why Choose Us</span>
             </div>
-            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4">
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-slate-900 mb-6">
               Everything You Need for a
-              <span className="block text-[#264b8d]">
+              <span className="block text-[#264b8d] mt-2">
                 Perfect Journey
               </span>
             </h2>
-            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+            <p className="text-xl md:text-2xl text-slate-600 max-w-3xl mx-auto">
               Experience the most advanced bus booking platform with cutting-edge features
             </p>
           </div>
@@ -233,12 +240,12 @@ export function LandingPage({ onSignIn, onSignUp, onOperatorLogin }: LandingPage
       </div>
 
       {/* CTA Section */}
-      <div className="relative py-24 bg-[#264b8d]">
-        <div className="w-full max-w-6xl mx-auto text-center px-4 sm:px-6 lg:px-12 xl:px-16">
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+      <div className="relative py-28 bg-[#264b8d]">
+        <div className="w-full max-w-6xl mx-auto text-center px-4 sm:px-6 lg:px-12 xl:px-20 2xl:px-32">
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-8">
             Ready to Start Your Journey?
           </h2>
-          <p className="text-xl text-white/90 mb-10 max-w-2xl mx-auto">
+          <p className="text-xl md:text-2xl text-white/90 mb-12 max-w-3xl mx-auto">
             Join thousands of happy travelers and experience hassle-free bus booking today
           </p>
           
