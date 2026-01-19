@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { LandingPage } from './components'
+import { LandingPage, SignUp, SignIn } from './components'
 import './App.css'
 
 function App() {
@@ -7,14 +7,10 @@ function App() {
 
   const handleSignIn = () => {
     setCurrentView('signin');
-    console.log('Navigate to Sign In');
-    // TODO: Implement sign in navigation
   };
 
   const handleSignUp = () => {
     setCurrentView('signup');
-    console.log('Navigate to Sign Up');
-    // TODO: Implement sign up navigation
   };
 
   const handleOperatorLogin = () => {
@@ -22,6 +18,15 @@ function App() {
     console.log('Navigate to Operator Login');
     // TODO: Implement operator login navigation
   };
+
+  // Render based on current view
+  if (currentView === 'signup') {
+    return <SignUp onSignIn={handleSignIn} />;
+  }
+
+  if (currentView === 'signin') {
+    return <SignIn onSignUp={handleSignUp} />;
+  }
 
   return (
     <LandingPage 
