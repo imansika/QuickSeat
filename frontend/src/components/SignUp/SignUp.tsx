@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Bus } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface SignUpProps {
   onSignIn: () => void;
 }
 
 export function SignUp({ onSignIn }: SignUpProps) {
+  const { signUp, signInWithGoogle, signInWithFacebook, error, clearError } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [localError, setLocalError] = useState('');
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -19,12 +23,67 @@ export function SignUp({ onSignIn }: SignUpProps) {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    setLocalError('');
+    clearError();
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle sign up logic here
-    console.log('Sign up:', formData);
+    setLocalError('');
+    clearError();
+
+    // Validate passwords match
+    if (formData.password !== formData.confirmPassword) {
+      setLocalError('Passwords do not match');
+      return;
+    }
+
+    // Validate password length
+    if (formData.password.length < 6) {
+      setLocalError('Password must be at least 6 characters');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await signUp({
+        email: formData.email,
+        password: formData.password,
+        fullName: formData.fullName,
+        phone: formData.phone,
+      });
+      // Sign up successful - user will be redirected by AuthContext
+    } catch (err: any) {
+      setLocalError(err.message || 'Failed to create account');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      setLoading(true);
+      setLocalError('');
+      clearError();
+      await signInWithGoogle();
+    } catch (err: any) {
+      setLocalError(err.message || 'Failed to sign in with Google');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFacebookSignIn = async () => {
+    try {
+      setLoading(true);
+      setLocalError('');
+      clearError();
+      await signInWithFacebook();
+    } catch (err: any) {
+      setLocalError(err.message || 'Failed to sign in with Facebook');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -131,6 +190,13 @@ export function SignUp({ onSignIn }: SignUpProps) {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Error Message */}
+            {(localError || error) && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+                {localError || error}
+              </div>
+            )}
+
             {/* Full Name */}
             <div className="space-y-2">
               <label htmlFor="fullName" className="block text-sm font-medium text-slate-900">
@@ -252,9 +318,10 @@ export function SignUp({ onSignIn }: SignUpProps) {
             {/* Sign Up Button */}
             <button
               type="submit"
-              className="w-full bg-[#264b8d] hover:bg-[#1e3a6d] text-white font-semibold py-3 rounded-xl transition shadow-lg hover:shadow-xl mt-6"
+              disabled={loading}
+              className="w-full bg-[#264b8d] hover:bg-[#1e3a6d] text-white font-semibold py-3 rounded-xl transition shadow-lg hover:shadow-xl mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Create Account
+              {loading ? 'Creating Account...' : 'Create Account'}
             </button>
           </form>
 
@@ -270,7 +337,12 @@ export function SignUp({ onSignIn }: SignUpProps) {
 
           {/* Social Login */}
           <div className="grid grid-cols-2 gap-3">
-            <button className="flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-300 rounded-xl hover:bg-slate-50 text-slate-700 bg-white transition">
+            <button
+              type="button"
+              onClick={handleGoogleSignIn}
+              disabled={loading}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-300 rounded-xl hover:bg-slate-50 text-slate-700 bg-white transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -279,7 +351,12 @@ export function SignUp({ onSignIn }: SignUpProps) {
               </svg>
               <span>Google</span>
             </button>
-            <button className="flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-300 rounded-xl hover:bg-slate-50 text-slate-700 bg-white transition">
+            <button
+              type="button"
+              onClick={handleFacebookSignIn}
+              disabled={loading}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-300 rounded-xl hover:bg-slate-50 text-slate-700 bg-white transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" fill="#1877F2"/>
               </svg>

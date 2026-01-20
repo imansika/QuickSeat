@@ -1,0 +1,200 @@
+import { Request, Response } from 'express';
+import { User } from '../models/User.model';
+import { AuthRequest } from '../middleware/auth.middleware';
+
+export class UserController {
+  // Create user profile
+  async createUser(req: AuthRequest, res: Response) {
+    try {
+      const { uid, email, fullName, phone } = req.body;
+
+      // Check if user already exists
+      const existingUser = await User.findOne({ uid });
+      if (existingUser) {
+        return res.status(400).json({ message: 'User already exists' });
+      }
+
+      const user = new User({
+        uid,
+        email,
+        fullName,
+        phone,
+      });
+
+      await user.save();
+
+      res.status(201).json({
+        message: 'User created successfully',
+        user: {
+          uid: user.uid,
+          email: user.email,
+          fullName: user.fullName,
+          phone: user.phone,
+          photoURL: user.photoURL,
+          role: user.role,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        },
+      });
+    } catch (error: any) {
+      console.error('Create user error:', error);
+      res.status(500).json({ message: error.message || 'Failed to create user' });
+    }
+  }
+
+  // Get user by UID
+  async getUserByUid(req: AuthRequest, res: Response) {
+    try {
+      const { uid } = req.params;
+
+      // Check authorization: users can only access their own data unless admin
+      if (req.user?.uid !== uid && req.user?.role !== 'admin') {
+        return res.status(403).json({ message: 'Unauthorized access' });
+      }
+
+      const user = await User.findOne({ uid });
+
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      res.status(200).json({
+        uid: user.uid,
+        email: user.email,
+        fullName: user.fullName,
+        phone: user.phone,
+        photoURL: user.photoURL,
+        role: user.role,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      });
+    } catch (error: any) {
+      console.error('Get user error:', error);
+      res.status(500).json({ message: error.message || 'Failed to fetch user' });
+    }
+  }
+
+  // Update user profile
+  async updateUser(req: AuthRequest, res: Response) {
+    try {
+      const { uid } = req.params;
+      const { fullName, phone, photoURL } = req.body;
+
+      // Check authorization: users can only update their own data unless admin
+      if (req.user?.uid !== uid && req.user?.role !== 'admin') {
+        return res.status(403).json({ message: 'Unauthorized access' });
+      }
+
+      const user = await User.findOneAndUpdate(
+        { uid },
+        {
+          ...(fullName && { fullName }),
+          ...(phone && { phone }),
+          ...(photoURL !== undefined && { photoURL }),
+        },
+        { new: true, runValidators: true }
+      );
+
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      res.status(200).json({
+        message: 'User updated successfully',
+        user: {
+          uid: user.uid,
+          email: user.email,
+          fullName: user.fullName,
+          phone: user.phone,
+          photoURL: user.photoURL,
+          role: user.role,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        },
+      });
+    } catch (error: any) {
+      console.error('Update user error:', error);
+      res.status(500).json({ message: error.message || 'Failed to update user' });
+    }
+  }
+
+  // Delete user
+  async deleteUser(req: AuthRequest, res: Response) {
+    try {
+      const { uid } = req.params;
+
+      // Check authorization: users can only delete their own account unless admin
+      if (req.user?.uid !== uid && req.user?.role !== 'admin') {
+        return res.status(403).json({ message: 'Unauthorized access' });
+      }
+
+      const user = await User.findOneAndDelete({ uid });
+
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      res.status(200).json({
+        message: 'User deleted successfully',
+      });
+    } catch (error: any) {
+      console.error('Delete user error:', error);
+      res.status(500).json({ message: error.message || 'Failed to delete user' });
+    }
+  }
+
+  // Get all users (admin only)
+  async getAllUsers(req: AuthRequest, res: Response) {
+    try {
+      const users = await User.find({ isActive: true }).select('-__v');
+
+      res.status(200).json({
+        count: users.length,
+        users: users.map(user => ({
+          uid: user.uid,
+          email: user.email,
+          fullName: user.fullName,
+          phone: user.phone,
+          photoURL: user.photoURL,
+          role: user.role,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        })),
+      });
+    } catch (error: any) {
+      console.error('Get all users error:', error);
+      res.status(500).json({ message: error.message || 'Failed to fetch users' });
+    }
+  }
+
+  // Soft delete / deactivate user
+  async deactivateUser(req: AuthRequest, res: Response) {
+    try {
+      const { uid } = req.params;
+
+      // Only admin can deactivate users
+      if (req.user?.role !== 'admin') {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
+      const user = await User.findOneAndUpdate(
+        { uid },
+        { isActive: false },
+        { new: true }
+      );
+
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      res.status(200).json({
+        message: 'User deactivated successfully',
+      });
+    } catch (error: any) {
+      console.error('Deactivate user error:', error);
+      res.status(500).json({ message: error.message || 'Failed to deactivate user' });
+    }
+  }
+}
+
+export const userController = new UserController();

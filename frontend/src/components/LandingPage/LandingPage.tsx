@@ -15,7 +15,7 @@ export function LandingPage({ onSignIn, onSignUp, onOperatorLogin }: LandingPage
     {
       icon: MapPin,
       title: 'Smart Route Planning',
-      description: 'AI-powered route suggestions to find the fastest and most comfortable journey',
+      description: 'Smart route suggestions to find the fastest and most comfortable journey',
       color: '#264b8d'
     },
     {
