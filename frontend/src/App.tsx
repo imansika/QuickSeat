@@ -1,26 +1,26 @@
-import { useState } from 'react'
-import { LandingPage, SignUp, SignIn } from './components'
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import { LandingPage, SignUp, SignIn, OperatorDashboard } from './components'
 import { PassengerDashboard } from './components/PassengerDashboard/PassengerDashboard'
 import { useAuth } from './contexts/AuthContext'
 import type { SearchData } from './components/PassengerDashboard/PassengerDashboard'
 import './App.css'
 
 function App() {
+  return (
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
+  );
+}
+
+function AppRoutes() {
+  const navigate = useNavigate();
   const { currentUser, userProfile, loading, signOut } = useAuth();
-  const [currentView, setCurrentView] = useState<'landing' | 'signin' | 'signup' | 'operator' | 'dashboard' | 'profile' | 'bookings'>('landing');
 
-  const handleSignIn = () => {
-    setCurrentView('signin');
-  };
-
-  const handleSignUp = () => {
-    setCurrentView('signup');
-  };
-
-  const handleOperatorLogin = () => {
-    setCurrentView('operator');
-    console.log('Navigate to Operator Login');
-    // TODO: Implement operator login navigation
+  // Helper function to get dashboard route based on user role
+  const getDashboardRoute = () => {
+    if (!userProfile) return '/dashboard';
+    return userProfile.role === 'operator' ? '/operator' : '/dashboard';
   };
 
   const handleSearch = (data: SearchData) => {
@@ -29,18 +29,48 @@ function App() {
   };
 
   const handleViewProfile = () => {
-    setCurrentView('profile');
+    console.log('View Profile');
     // TODO: Implement profile view
   };
 
   const handleViewBookings = () => {
-    setCurrentView('bookings');
+    console.log('View Bookings');
     // TODO: Implement bookings view
   };
 
   const handleLogout = async () => {
     await signOut();
-    setCurrentView('landing');
+    navigate('/');
+  };
+
+  const handleOperatorLogout = async () => {
+    await signOut();
+    navigate('/');
+  };
+
+  const handleBusRegistration = () => {
+    console.log('Bus Registration');
+    // TODO: Implement bus registration view
+  };
+
+  const handleUpdateBus = (busData?: any) => {
+    console.log('Update Bus:', busData);
+    // TODO: Implement bus update view
+  };
+
+  const handleUpdateAvailability = () => {
+    console.log('Update Availability');
+    // TODO: Implement availability update view
+  };
+
+  const handleRevenueReports = () => {
+    console.log('Revenue Reports');
+    // TODO: Implement revenue reports view
+  };
+
+  const handleTripHistory = () => {
+    console.log('Trip History');
+    // TODO: Implement trip history view
   };
 
   // Show loading spinner while checking auth state
@@ -55,34 +85,63 @@ function App() {
     );
   }
 
-  // Show dashboard if user is authenticated
-  if (currentUser) {
-    return (
-      <PassengerDashboard
-        onSearch={handleSearch}
-        onLogout={handleLogout}
-        onViewProfile={handleViewProfile}
-        onViewBookings={handleViewBookings}
-      />
-    );
-  }
-
-  // Render based on current view
-  if (currentView === 'signup') {
-    return <SignUp onSignIn={handleSignIn} />;
-  }
-
-  if (currentView === 'signin') {
-    return <SignIn onSignUp={handleSignUp} />;
-  }
-
   return (
-    <LandingPage 
-      onSignIn={handleSignIn}
-      onSignUp={handleSignUp}
-      onOperatorLogin={handleOperatorLogin}
-    />
-  )
+    <Routes>
+      {/* Landing Page */}
+      <Route path="/" element={<LandingPage onSignIn={() => navigate('/signin')} onSignUp={() => navigate('/signup')} onOperatorLogin={() => navigate('/signin')} />} />
+      
+      {/* Auth Routes */}
+      <Route path="/signin" element={<SignIn onSignUp={() => navigate('/signup')} />} />
+      <Route path="/signup" element={<SignUp onSignIn={() => navigate('/signin')} />} />
+      
+      {/* Operator Dashboard - Protected Route for Operators */}
+      <Route 
+        path="/operator" 
+        element={
+          currentUser && userProfile?.role === 'operator' ? (
+            <OperatorDashboard
+              onLogout={handleOperatorLogout}
+              onBusRegistration={handleBusRegistration}
+              onUpdateBus={handleUpdateBus}
+              onUpdateAvailability={handleUpdateAvailability}
+              onRevenueReports={handleRevenueReports}
+              onTripHistory={handleTripHistory}
+            />
+          ) : currentUser && userProfile?.role !== 'operator' ? (
+            <Navigate to="/dashboard" replace />
+          ) : (
+            <Navigate to="/signin" replace />
+          )
+        } 
+      />
+      
+      {/* Passenger Dashboard - Protected Route */}
+      <Route 
+        path="/dashboard" 
+        element={
+          currentUser ? (
+            userProfile?.role === 'operator' ? (
+              <Navigate to="/operator" replace />
+            ) : (
+              <PassengerDashboard
+                onSearch={handleSearch}
+                onLogout={handleLogout}
+                onViewProfile={handleViewProfile}
+                onViewBookings={handleViewBookings}
+              />
+            )
+          ) : (
+            <Navigate to="/signin" replace />
+          )
+        } 
+      />
+      
+      {/* Redirect authenticated users from landing to appropriate dashboard */}
+      {currentUser && userProfile && (
+        <Route path="/" element={<Navigate to={getDashboardRoute()} replace />} />
+      )}
+    </Routes>
+  );
 }
 
 export default App

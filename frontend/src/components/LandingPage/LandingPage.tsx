@@ -1,5 +1,6 @@
 import { Bus, MapPin, Clock, Shield, CreditCard, Star, ArrowRight, CheckCircle, Sparkles, Award } from 'lucide-react';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Footer } from '../Footer/Footer';
 
 interface LandingPageProps {
@@ -79,18 +80,18 @@ export function LandingPage({ onSignIn, onSignUp, onOperatorLogin }: LandingPage
               <a href="#contact" className="hidden md:inline text-slate-700 hover:text-[#264b8d] font-medium transition-colors">
                 Contact
               </a>
-              <button
-                onClick={onSignIn}
+              <Link
+                to="/signin"
                 className="px-5 py-2.5 text-slate-700 hover:text-[#264b8d] font-medium transition-colors"
               >
                 Sign In
-              </button>
-              <button
-                onClick={onSignUp}
+              </Link>
+              <Link
+                to="/signup"
                 className="px-6 py-2.5 bg-[#264b8d] text-white rounded-xl font-medium hover:bg-[#1e3a6d] hover:shadow-lg transition-all duration-300"
               >
                 Get Started
-              </button>
+              </Link>
             </div>
           </div>
         </div>
@@ -250,19 +251,19 @@ export function LandingPage({ onSignIn, onSignUp, onOperatorLogin }: LandingPage
           </p>
           
           <div className="flex flex-wrap gap-4 justify-center">
-            <button
-              onClick={onSignUp}
+            <Link
+              to="/signup"
               className="group px-10 py-5 bg-white text-[#264b8d] rounded-xl font-bold text-lg hover:bg-slate-50 transition-all duration-300 hover:shadow-2xl flex items-center gap-2"
             >
               Create Free Account
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </button>
-            <button
-              onClick={onSignIn}
+            </Link>
+            <Link
+              to="/signin"
               className="px-10 py-5 bg-transparent border-2 border-white text-white rounded-xl font-bold text-lg hover:bg-white/10 transition-all duration-300"
             >
               Sign In
-            </button>
+            </Link>
           </div>
           
           <div className="mt-12 flex flex-wrap justify-center items-center gap-8 text-white/90">

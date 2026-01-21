@@ -1,7 +1,7 @@
 import type { UserProfile, UpdateUserData } from '../types/user';
 import { authService } from './auth.service';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 class UserService {
   // Get authorization headers
@@ -19,21 +19,28 @@ class UserService {
     email: string;
     fullName: string;
     phone: string;
+    role?: 'user' | 'operator' | 'admin';
   }): Promise<UserProfile> {
     try {
+      console.log('Creating user profile:', userData);
       const headers = await this.getAuthHeaders();
+      console.log('API URL:', `${API_URL}/users`);
       const response = await fetch(`${API_URL}/users`, {
         method: 'POST',
         headers,
         body: JSON.stringify(userData),
       });
 
+      console.log('Response status:', response.status);
       if (!response.ok) {
         const error = await response.json();
+        console.error('Error response:', error);
         throw new Error(error.message || 'Failed to create user profile');
       }
 
-      return await response.json();
+      const result = await response.json();
+      console.log('User profile created successfully:', result);
+      return result;
     } catch (error: any) {
       throw new Error(error.message || 'Failed to create user profile');
     }
@@ -115,6 +122,26 @@ class UserService {
       return await response.json();
     } catch (error: any) {
       throw new Error(error.message || 'Failed to fetch users');
+    }
+  }
+
+  // Request operator role
+  async requestOperatorRole(): Promise<{ message: string; user: UserProfile }> {
+    try {
+      const headers = await this.getAuthHeaders();
+      const response = await fetch(`${API_URL}/users/operator/request`, {
+        method: 'POST',
+        headers,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to request operator role');
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      throw new Error(error.message || 'Failed to request operator role');
     }
   }
 }

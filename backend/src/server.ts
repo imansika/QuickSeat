@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
+import busRoutes from "./routes/bus.routes";
 
 dotenv.config();
 
@@ -21,6 +22,7 @@ mongoose.connect(process.env.MONGO_URI as string)
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api', userRoutes);
+app.use('/api', busRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Bus } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface SignUpProps {
@@ -7,7 +8,8 @@ interface SignUpProps {
 }
 
 export function SignUp({ onSignIn }: SignUpProps) {
-  const { signUp, signInWithGoogle, signInWithFacebook, error, clearError } = useAuth();
+  const navigate = useNavigate();
+  const { signUp, signInWithGoogle, signInWithFacebook, userProfile, error, clearError } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -52,7 +54,11 @@ export function SignUp({ onSignIn }: SignUpProps) {
         fullName: formData.fullName,
         phone: formData.phone,
       });
-      // Sign up successful - user will be redirected by AuthContext
+      // Wait for userProfile to load, then redirect based on role
+      setTimeout(() => {
+        const dashboardRoute = userProfile?.role === 'operator' ? '/operator' : '/dashboard';
+        navigate(dashboardRoute);
+      }, 500);
     } catch (err: any) {
       setLocalError(err.message || 'Failed to create account');
     } finally {
@@ -66,6 +72,10 @@ export function SignUp({ onSignIn }: SignUpProps) {
       setLocalError('');
       clearError();
       await signInWithGoogle();
+      setTimeout(() => {
+        const dashboardRoute = userProfile?.role === 'operator' ? '/operator' : '/dashboard';
+        navigate(dashboardRoute);
+      }, 500);
     } catch (err: any) {
       setLocalError(err.message || 'Failed to sign in with Google');
     } finally {
@@ -79,6 +89,10 @@ export function SignUp({ onSignIn }: SignUpProps) {
       setLocalError('');
       clearError();
       await signInWithFacebook();
+      setTimeout(() => {
+        const dashboardRoute = userProfile?.role === 'operator' ? '/operator' : '/dashboard';
+        navigate(dashboardRoute);
+      }, 500);
     } catch (err: any) {
       setLocalError(err.message || 'Failed to sign in with Facebook');
     } finally {
@@ -367,9 +381,9 @@ export function SignUp({ onSignIn }: SignUpProps) {
           {/* Sign In Link */}
           <p className="text-center text-sm text-slate-600 mt-6">
             Already have an account?{' '}
-            <button onClick={onSignIn} className="font-semibold text-[#264b8d] hover:underline">
+            <Link to="/signin" className="font-semibold text-[#264b8d] hover:underline">
               Sign in
-            </button>
+            </Link>
           </p>
         </div>
       </div>

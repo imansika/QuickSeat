@@ -9,7 +9,8 @@ export interface AuthRequest extends Request {
   };
 }
 
-export const verifyFirebaseToken = async (
+// Verify Firebase token only (for user creation)
+export const verifyFirebaseTokenOnly = async (
   req: AuthRequest,
   res: Response,
   next: NextFunction
@@ -29,6 +30,49 @@ export const verifyFirebaseToken = async (
     req.user = {
       uid: decodedToken.uid,
       email: decodedToken.email,
+    };
+
+    next();
+  } catch (error) {
+    console.error('Token verification error:', error);
+    return res.status(403).json({ message: 'Invalid or expired token' });
+  }
+};
+
+// Verify Firebase token and check database for role
+export const verifyFirebaseToken = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'No token provided' });
+    }
+
+    const token = authHeader.split('Bearer ')[1];
+
+    // Verify the token with Firebase Admin SDK
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    
+    // Get user from database to include role
+    const { User } = require('../models/User.model');
+    const user = await User.findOne({ uid: decodedToken.uid });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found in database' });
+    }
+
+    if (!user.isActive) {
+      return res.status(403).json({ message: 'Account is inactive' });
+    }
+    
+    req.user = {
+      uid: decodedToken.uid,
+      email: decodedToken.email,
+      role: user.role,
     };
 
     next();
