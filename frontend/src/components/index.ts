@@ -3,3 +3,8 @@ export { Footer } from './Footer/Footer';
 export { SignUp } from './SignUp/SignUp';
 export { SignIn } from './SignIn/SignIn';
 export { OperatorDashboard } from './OperatorDashboard/OperatorDashboard';
+export { Payment } from './Payment';
+export { BookingConfirmation } from './BookingConfirmation';
+export { MyBookings } from './MyBookings';
+export { UserProfile } from './UserProfile';
+export { UpdateAvailability } from './UpdateAvailability';

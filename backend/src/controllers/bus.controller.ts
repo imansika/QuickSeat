@@ -6,7 +6,7 @@ import mongoose from 'mongoose';
 // Register a new bus
 export const registerBus = async (req: AuthRequest, res: Response) => {
   try {
-    const { busNumber, routeNumber, origin, destination, seatCapacity, departureTime, arrivalTime, operatingDays, ratePerKm } = req.body;
+    const { busNumber, routeNumber, origin, destination, stops, seatCapacity, departureTime, arrivalTime, operatingDays, ratePerKm } = req.body;
     const operatorId = req.user?.uid; // From auth middleware
 
     // Validation
@@ -33,6 +33,7 @@ export const registerBus = async (req: AuthRequest, res: Response) => {
       operatorId,
       origin,
       destination,
+      stops: stops || [], // Optional stops array
       seatCapacity: parseInt(seatCapacity),
       departureTime,
       arrivalTime,

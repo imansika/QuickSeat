@@ -1,11 +1,18 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
+export interface IBusStop {
+  name: string;
+  location: string; // Address or coordinates
+  arrivalTime?: string; // Optional time at this stop
+}
+
 export interface IBus extends Document {
   busNumber: string;
   routeNumber: string;
   operatorId: string; // Firebase UID of the operator who owns this bus
   origin: string;
   destination: string;
+  stops: IBusStop[]; // Array of stops along the route
   seatCapacity: number;
   departureTime: string;
   arrivalTime: string;
@@ -45,6 +52,24 @@ const BusSchema = new Schema<IBus>(
       required: true,
       trim: true,
     },
+    stops: [
+      {
+        name: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        location: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        arrivalTime: {
+          type: String,
+          trim: true,
+        },
+      },
+    ],
     seatCapacity: {
       type: Number,
       required: true,

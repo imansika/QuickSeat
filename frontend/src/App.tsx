@@ -1,6 +1,11 @@
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
-import { LandingPage, SignUp, SignIn, OperatorDashboard } from './components'
+import { LandingPage, SignUp, SignIn, OperatorDashboard, UpdateAvailability } from './components'
 import { PassengerDashboard } from './components/PassengerDashboard/PassengerDashboard'
+import { SeatSelection } from './components/SeatSelection/SeatSelection'
+import { Payment } from './components/Payment'
+import { BookingConfirmation } from './components/BookingConfirmation'
+import { MyBookings } from './components/MyBookings'
+import { UserProfile } from './components/UserProfile'
 import { useAuth } from './contexts/AuthContext'
 import type { SearchData } from './components/PassengerDashboard/PassengerDashboard'
 import './App.css'
@@ -29,13 +34,11 @@ function AppRoutes() {
   };
 
   const handleViewProfile = () => {
-    console.log('View Profile');
-    // TODO: Implement profile view
+    navigate('/profile');
   };
 
   const handleViewBookings = () => {
-    console.log('View Bookings');
-    // TODO: Implement bookings view
+    navigate('/my-bookings');
   };
 
   const handleLogout = async () => {
@@ -48,29 +51,9 @@ function AppRoutes() {
     navigate('/');
   };
 
-  const handleBusRegistration = () => {
-    console.log('Bus Registration');
-    // TODO: Implement bus registration view
-  };
-
   const handleUpdateBus = (busData?: any) => {
     console.log('Update Bus:', busData);
     // TODO: Implement bus update view
-  };
-
-  const handleUpdateAvailability = () => {
-    console.log('Update Availability');
-    // TODO: Implement availability update view
-  };
-
-  const handleRevenueReports = () => {
-    console.log('Revenue Reports');
-    // TODO: Implement revenue reports view
-  };
-
-  const handleTripHistory = () => {
-    console.log('Trip History');
-    // TODO: Implement trip history view
   };
 
   // Show loading spinner while checking auth state
@@ -101,11 +84,7 @@ function AppRoutes() {
           currentUser && userProfile?.role === 'operator' ? (
             <OperatorDashboard
               onLogout={handleOperatorLogout}
-              onBusRegistration={handleBusRegistration}
               onUpdateBus={handleUpdateBus}
-              onUpdateAvailability={handleUpdateAvailability}
-              onRevenueReports={handleRevenueReports}
-              onTripHistory={handleTripHistory}
             />
           ) : currentUser && userProfile?.role !== 'operator' ? (
             <Navigate to="/dashboard" replace />
@@ -130,6 +109,101 @@ function AppRoutes() {
                 onViewBookings={handleViewBookings}
               />
             )
+          ) : (
+            <Navigate to="/signin" replace />
+          )
+        } 
+      />
+
+      {/* Alias route for passenger dashboard */}
+      <Route 
+        path="/passenger" 
+        element={
+          currentUser ? (
+            userProfile?.role === 'operator' ? (
+              <Navigate to="/operator" replace />
+            ) : (
+              <PassengerDashboard
+                onSearch={handleSearch}
+                onLogout={handleLogout}
+                onViewProfile={handleViewProfile}
+                onViewBookings={handleViewBookings}
+              />
+            )
+          ) : (
+            <Navigate to="/signin" replace />
+          )
+        } 
+      />
+
+      {/* Seat Selection - Protected Route */}
+      <Route 
+        path="/select-seat" 
+        element={
+          currentUser ? (
+            <SeatSelection />
+          ) : (
+            <Navigate to="/signin" replace />
+          )
+        } 
+      />
+
+      {/* Payment - Protected Route */}
+      <Route 
+        path="/payment" 
+        element={
+          currentUser ? (
+            <Payment />
+          ) : (
+            <Navigate to="/signin" replace />
+          )
+        } 
+      />
+
+      {/* Booking Confirmation - Protected Route */}
+      <Route 
+        path="/booking-confirmation" 
+        element={
+          currentUser ? (
+            <BookingConfirmation />
+          ) : (
+            <Navigate to="/signin" replace />
+          )
+        } 
+      />
+
+      {/* My Bookings - Protected Route */}
+      <Route 
+        path="/my-bookings" 
+        element={
+          currentUser ? (
+            <MyBookings />
+          ) : (
+            <Navigate to="/signin" replace />
+          )
+        } 
+      />
+
+      {/* User Profile - Protected Route */}
+      <Route 
+        path="/profile" 
+        element={
+          currentUser ? (
+            <UserProfile />
+          ) : (
+            <Navigate to="/signin" replace />
+          )
+        } 
+      />
+
+      {/* Update Availability - Protected Route for Operators */}
+      <Route 
+        path="/update-availability" 
+        element={
+          currentUser && userProfile?.role === 'operator' ? (
+            <UpdateAvailability />
+          ) : currentUser ? (
+            <Navigate to="/dashboard" replace />
           ) : (
             <Navigate to="/signin" replace />
           )

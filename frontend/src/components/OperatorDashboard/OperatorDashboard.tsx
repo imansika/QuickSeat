@@ -1,30 +1,34 @@
 import { useState, useEffect } from 'react';
-import { Bus, Plus, UserPlus, Edit3, Calendar, TrendingUp, History, LogOut, BarChart3, Users, Clock, MapPin, X, Hash, Save, ChevronDown, User, Settings, Trash2 } from 'lucide-react';
+import { Bus, Plus, UserPlus, Edit3, Calendar, TrendingUp, History, LogOut, BarChart3, Users, Clock, MapPin, X, Hash, Save, ChevronDown, User, Settings, Trash2, CheckCircle, XCircle } from 'lucide-react';
 import { registerBus, getOperatorBuses, deleteBus } from '../../services/bus.service';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface OperatorDashboardProps {
   onLogout: () => void;
-  onBusRegistration: () => void;
   onUpdateBus: (busData?: any) => void;
-  onUpdateAvailability: () => void;
-  onRevenueReports: () => void;
-  onTripHistory: () => void;
 }
 
 export function OperatorDashboard({
   onLogout,
-  onBusRegistration,
-  onUpdateBus,
-  onUpdateAvailability,
-  onRevenueReports,
-  onTripHistory
+  onUpdateBus
 }: OperatorDashboardProps) {
   const { currentUser, userProfile } = useAuth();
+  const [activeView, setActiveView] = useState<'dashboard' | 'availability' | 'revenue' | 'history'>('dashboard');
   const [showBusModal, setShowBusModal] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [registeredBuses, setRegisteredBuses] = useState<any[]>([]);
   const [isLoadingBuses, setIsLoadingBuses] = useState(true);
+  
+  // Availability states
+  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedBus, setSelectedBus] = useState('');
+  const [availability, setAvailability] = useState<any[]>([
+    { id: '1', busNumber: 'EL-2456', route: 'Colombo → Kandy', date: '2026-01-25', status: 'available' },
+    { id: '2', busNumber: 'ST-1823', route: 'Galle → Colombo', date: '2026-01-25', status: 'available' },
+    { id: '3', busNumber: 'NE-3421', route: 'Colombo → Jaffna', date: '2026-01-25', status: 'unavailable' },
+    { id: '4', busNumber: 'HC-5632', route: 'Kandy → Nuwara Eliya', date: '2026-01-25', status: 'available' },
+  ]);
+  
   const [formData, setFormData] = useState({
     busNumber: '',
     routeNumber: '',
@@ -38,6 +42,20 @@ export function OperatorDashboard({
   });
   const [errors, setErrors] = useState<any>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Availability toggle function
+  const toggleAvailability = (id: string) => {
+    setAvailability(prev => prev.map(bus => 
+      bus.id === id 
+        ? { ...bus, status: bus.status === 'available' ? 'unavailable' : 'available' }
+        : bus
+    ));
+  };
+
+  const handleSaveAvailability = () => {
+    console.log('Saving availability:', availability);
+    alert('Availability changes saved successfully!');
+  };
 
   // Fetch buses when component mounts
   useEffect(() => {
@@ -125,16 +143,6 @@ export function OperatorDashboard({
     { label: 'Monthly Revenue', value: 'Rs. 2.4M', icon: TrendingUp },
   ];
 
-  // Different blue shades for bus cards
-  const busColors = [
-    { bg: 'bg-slate-600' },
-    { bg: 'bg-slate-700' },
-    { bg: 'bg-gray-600' },
-    { bg: 'bg-slate-500' },
-    { bg: 'bg-gray-700' },
-    { bg: 'bg-slate-800' },
-  ];
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-100">
       <div className="flex">
@@ -148,11 +156,20 @@ export function OperatorDashboard({
 
           <nav className="space-y-3">
             <button
-              onClick={() => setShowBusModal(true)}
-              className="w-full flex items-center gap-4 px-5 py-4 rounded-xl text-left text-white hover:bg-white hover:text-[#264b8d] transition-all group shadow-md hover:shadow-xl"
+              onClick={() => {
+                setActiveView('dashboard');
+                setShowBusModal(true);
+              }}
+              className={`w-full flex items-center gap-4 px-5 py-4 rounded-xl text-left transition-all group shadow-md hover:shadow-xl ${
+                activeView === 'dashboard' ? 'bg-white text-[#264b8d]' : 'text-white hover:bg-white hover:text-[#264b8d]'
+              }`}
             >
-              <div className="p-2.5 rounded-xl bg-white/20 group-hover:bg-[#264b8d]/10 transition-colors">
-                <Plus className="w-6 h-6 text-white group-hover:text-[#264b8d]" />
+              <div className={`p-2.5 rounded-xl transition-colors ${
+                activeView === 'dashboard' ? 'bg-[#264b8d]/10' : 'bg-white/20 group-hover:bg-[#264b8d]/10'
+              }`}>
+                <Plus className={`w-6 h-6 ${
+                  activeView === 'dashboard' ? 'text-[#264b8d]' : 'text-white group-hover:text-[#264b8d]'
+                }`} />
               </div>
               <div>
                 <p className="font-bold text-base">Register Bus</p>
@@ -162,7 +179,9 @@ export function OperatorDashboard({
 
             <button
               onClick={() => {}}
-              className="w-full flex items-center gap-4 px-5 py-4 rounded-xl text-left text-white hover:bg-white hover:text-[#264b8d] transition-all group shadow-md hover:shadow-xl"
+              className={`w-full flex items-center gap-4 px-5 py-4 rounded-xl text-left transition-all group shadow-md hover:shadow-xl ${
+                false ? 'bg-white text-[#264b8d]' : 'text-white hover:bg-white hover:text-[#264b8d]'
+              }`}
             >
               <div className="p-2.5 rounded-xl bg-white/20 group-hover:bg-[#264b8d]/10 transition-colors">
                 <UserPlus className="w-6 h-6 text-white group-hover:text-[#264b8d]" />
@@ -174,11 +193,17 @@ export function OperatorDashboard({
             </button>
 
             <button
-              onClick={onUpdateAvailability}
-              className="w-full flex items-center gap-4 px-5 py-4 rounded-xl text-left text-white hover:bg-white hover:text-[#264b8d] transition-all group shadow-md hover:shadow-xl"
+              onClick={() => setActiveView('availability')}
+              className={`w-full flex items-center gap-4 px-5 py-4 rounded-xl text-left transition-all group shadow-md hover:shadow-xl ${
+                activeView === 'availability' ? 'bg-white text-[#264b8d]' : 'text-white hover:bg-white hover:text-[#264b8d]'
+              }`}
             >
-              <div className="p-2.5 rounded-xl bg-white/20 group-hover:bg-[#1e3a6d]/10 transition-colors">
-                <Calendar className="w-6 h-6 text-white group-hover:text-[#1e3a6d]" />
+              <div className={`p-2.5 rounded-xl transition-colors ${
+                activeView === 'availability' ? 'bg-[#264b8d]/10' : 'bg-white/20 group-hover:bg-[#264b8d]/10'
+              }`}>
+                <Calendar className={`w-6 h-6 ${
+                  activeView === 'availability' ? 'text-[#264b8d]' : 'text-white group-hover:text-[#264b8d]'
+                }`} />
               </div>
               <div>
                 <p className="font-bold text-base">Availability</p>
@@ -187,11 +212,17 @@ export function OperatorDashboard({
             </button>
 
             <button
-              onClick={onRevenueReports}
-              className="w-full flex items-center gap-4 px-5 py-4 rounded-xl text-left text-white hover:bg-white hover:text-[#264b8d] transition-all group shadow-md hover:shadow-xl"
+              onClick={() => setActiveView('revenue')}
+              className={`w-full flex items-center gap-4 px-5 py-4 rounded-xl text-left transition-all group shadow-md hover:shadow-xl ${
+                activeView === 'revenue' ? 'bg-white text-[#264b8d]' : 'text-white hover:bg-white hover:text-[#264b8d]'
+              }`}
             >
-              <div className="p-2.5 rounded-xl bg-white/20 group-hover:bg-[#264b8d]/10 transition-colors">
-                <TrendingUp className="w-6 h-6 text-white group-hover:text-[#264b8d]" />
+              <div className={`p-2.5 rounded-xl transition-colors ${
+                activeView === 'revenue' ? 'bg-[#264b8d]/10' : 'bg-white/20 group-hover:bg-[#264b8d]/10'
+              }`}>
+                <TrendingUp className={`w-6 h-6 ${
+                  activeView === 'revenue' ? 'text-[#264b8d]' : 'text-white group-hover:text-[#264b8d]'
+                }`} />
               </div>
               <div>
                 <p className="font-bold text-base">Revenue</p>
@@ -200,11 +231,17 @@ export function OperatorDashboard({
             </button>
 
             <button
-              onClick={onTripHistory}
-              className="w-full flex items-center gap-4 px-5 py-4 rounded-xl text-left text-white hover:bg-white hover:text-[#264b8d] transition-all group shadow-md hover:shadow-xl"
+              onClick={() => setActiveView('history')}
+              className={`w-full flex items-center gap-4 px-5 py-4 rounded-xl text-left transition-all group shadow-md hover:shadow-xl ${
+                activeView === 'history' ? 'bg-white text-[#264b8d]' : 'text-white hover:bg-white hover:text-[#264b8d]'
+              }`}
             >
-              <div className="p-2.5 rounded-xl bg-white/20 group-hover:bg-[#3d5fa3]/10 transition-colors">
-                <History className="w-6 h-6 text-white group-hover:text-[#3d5fa3]" />
+              <div className={`p-2.5 rounded-xl transition-colors ${
+                activeView === 'history' ? 'bg-[#264b8d]/10' : 'bg-white/20 group-hover:bg-[#3d5fa3]/10'
+              }`}>
+                <History className={`w-6 h-6 ${
+                  activeView === 'history' ? 'text-[#264b8d]' : 'text-white group-hover:text-[#3d5fa3]'
+                }`} />
               </div>
               <div>
                 <p className="font-bold text-base">Trip History</p>
@@ -297,102 +334,103 @@ export function OperatorDashboard({
         </nav>
 
         <div className="w-full px-6 lg:px-10 py-12">
-          {/* Header */}
-          <div className="mb-10">
-            <h1 className="text-3xl font-bold text-slate-900 mb-3">Operator Dashboard</h1>
-            <p className="text-lg text-slate-600">Welcome back! Manage your buses and track performance</p>
-          </div>
+          {/* Dashboard View */}
+          {activeView === 'dashboard' && (
+            <>
+              {/* Header */}
+              <div className="mb-10">
+                <h1 className="text-3xl font-bold text-slate-900 mb-3">Operator Dashboard</h1>
+                <p className="text-lg text-slate-600">Welcome back! Manage your buses and track performance</p>
+              </div>
 
-          {/* Statistics */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-14">
-            {stats.map((stat, index) => (
-              <div
-                key={index}
-                className="bg-slate-100 rounded-3xl shadow-md border-2 border-slate-200 p-8 hover:shadow-xl transition-all hover:-translate-y-1"
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-base text-slate-600 mb-2 font-medium">{stat.label}</p>
-                    <p className="text-4xl font-bold text-slate-900">{stat.value}</p>
-                  </div>
-                  <div className="p-4 rounded-2xl bg-slate-600 shadow-lg">
-                    <stat.icon className="w-8 h-8 text-white" />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Registered Buses List */}
-          <div className="mb-14">
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-4">
-                <div className="w-2 h-12 bg-gradient-to-b from-[#264b8d] to-[#1e3a6d] rounded-full"></div>
-                <h2 className="text-2xl font-bold text-slate-900">Registered Buses</h2>
-              </div>
-              <button
-                onClick={() => setShowBusModal(true)}
-                className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-[#264b8d] to-[#1e3a6d] text-white rounded-2xl font-bold hover:shadow-2xl hover:shadow-blue-500/50 transition-all text-lg hover:scale-105"
-              >
-                <Plus className="w-6 h-6" />
-                Add New Bus
-              </button>
-            </div>
-
-            {isLoadingBuses ? (
-              <div className="flex items-center justify-center py-20">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#264b8d] mx-auto mb-4"></div>
-                  <p className="text-slate-600">Loading buses...</p>
-                </div>
-              </div>
-            ) : registeredBuses.length === 0 ? (
-              <div className="bg-white rounded-3xl shadow-md border-2 border-slate-100 p-12 text-center">
-                <Bus className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                <h3 className="text-2xl font-bold text-slate-900 mb-2">No buses registered yet</h3>
-                <p className="text-slate-600 mb-6">Get started by adding your first bus</p>
-                <button
-                  onClick={() => setShowBusModal(true)}
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#264b8d] to-[#1e3a6d] text-white rounded-xl font-semibold hover:shadow-lg transition-all"
-                >
-                  <Plus className="w-5 h-5" />
-                  Add Your First Bus
-                </button>
-              </div>
-            ) : (
-              <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-8">
-                {registeredBuses.map((bus, index) => {
-                  const busColor = busColors[index % busColors.length];
-                return (
-                <div
-                  key={bus.id}
-                  className="bg-white rounded-3xl shadow-md border-2 border-slate-100 p-8 hover:shadow-xl transition-all group hover:-translate-y-1"
-                >
-                  <div className="flex items-start justify-between mb-6">
-                    <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 flex items-center justify-center">
-                        <Bus className="w-12 h-12 text-slate-600" />
-                      </div>
+              {/* Statistics */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-14">
+                {stats.map((stat, index) => (
+                  <div
+                    key={index}
+                    className="bg-slate-100 rounded-3xl shadow-md border-2 border-slate-200 p-8 hover:shadow-xl transition-all hover:-translate-y-1"
+                  >
+                    <div className="flex items-start justify-between">
                       <div>
-                        <h3 className="text-2xl font-bold text-slate-900">{bus.busNumber}</h3>
-                        {bus.routeNumber && (
-                          <p className="text-sm text-[#264b8d] font-semibold mb-1">
-                            Route {bus.routeNumber}
-                          </p>
-                        )}
-                        <p className="text-base text-slate-600 flex items-center gap-2">
-                          <MapPin className="w-5 h-5" />
-                          {bus.origin} → {bus.destination}
-                        </p>
+                        <p className="text-base text-slate-600 mb-2 font-medium">{stat.label}</p>
+                        <p className="text-4xl font-bold text-slate-900">{stat.value}</p>
+                      </div>
+                      <div className="p-4 rounded-2xl bg-slate-600 shadow-lg">
+                        <stat.icon className="w-8 h-8 text-white" />
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => onUpdateBus(bus)}
-                        className="p-3 rounded-xl bg-slate-100 text-slate-600 hover:bg-blue-600 hover:text-white transition-all opacity-0 group-hover:opacity-100 shadow-md"
-                        title="Update Bus"
-                      >
-                        <Edit3 className="w-5 h-5" />
+                  </div>
+                ))}
+              </div>
+
+              {/* Registered Buses List */}
+              <div className="mb-14">
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-4">
+                    <div className="w-2 h-12 bg-gradient-to-b from-[#264b8d] to-[#1e3a6d] rounded-full"></div>
+                    <h2 className="text-2xl font-bold text-slate-900">Registered Buses</h2>
+                  </div>
+                  <button
+                    onClick={() => setShowBusModal(true)}
+                    className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-[#264b8d] to-[#1e3a6d] text-white rounded-2xl font-bold hover:shadow-2xl hover:shadow-blue-500/50 transition-all text-lg hover:scale-105"
+                  >
+                    <Plus className="w-6 h-6" />
+                    Add New Bus
+                  </button>
+                </div>
+
+                {isLoadingBuses ? (
+                  <div className="flex items-center justify-center py-20">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#264b8d] mx-auto mb-4"></div>
+                      <p className="text-slate-600">Loading buses...</p>
+                    </div>
+                  </div>
+                ) : registeredBuses.length === 0 ? (
+                  <div className="bg-white rounded-3xl shadow-md border-2 border-slate-100 p-12 text-center">
+                    <Bus className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                    <h3 className="text-2xl font-bold text-slate-900 mb-2">No buses registered yet</h3>
+                    <p className="text-slate-600 mb-6">Get started by adding your first bus</p>
+                    <button
+                      onClick={() => setShowBusModal(true)}
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#264b8d] to-[#1e3a6d] text-white rounded-xl font-semibold hover:shadow-lg transition-all"
+                    >
+                      <Plus className="w-5 h-5" />
+                      Add Your First Bus
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-8">
+                    {registeredBuses.map((bus) => (
+                    <div
+                      key={bus.id}
+                      className="bg-white rounded-3xl shadow-md border-2 border-slate-100 p-8 hover:shadow-xl transition-all group hover:-translate-y-1"
+                    >
+                      <div className="flex items-start justify-between mb-6">
+                        <div className="flex items-center gap-4">
+                          <div className="w-16 h-16 flex items-center justify-center">
+                            <Bus className="w-12 h-12 text-slate-600" />
+                          </div>
+                          <div>
+                            <h3 className="text-2xl font-bold text-slate-900">{bus.busNumber}</h3>
+                            {bus.routeNumber && (
+                              <p className="text-sm text-[#264b8d] font-semibold mb-1">
+                                Route {bus.routeNumber}
+                              </p>
+                            )}
+                            <p className="text-base text-slate-600 flex items-center gap-2">
+                              <MapPin className="w-5 h-5" />
+                              {bus.origin} → {bus.destination}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => onUpdateBus(bus)}
+                            className="p-3 rounded-xl bg-slate-100 text-slate-600 hover:bg-blue-600 hover:text-white transition-all opacity-0 group-hover:opacity-100 shadow-md"
+                            title="Update Bus"
+                          >
+                            <Edit3 className="w-5 h-5" />
                       </button>
                       <button
                         onClick={async () => {
@@ -435,11 +473,151 @@ export function OperatorDashboard({
                     </div>
                   </div>
                 </div>
-                );
-              })}
+              ))}
             </div>
             )}
           </div>
+            </>
+          )}
+
+          {/* Availability View */}
+          {activeView === 'availability' && (
+            <div className="min-h-[calc(100vh-12rem)] bg-gradient-to-br from-[#264b8d]/5 via-slate-50 to-[#dfae6b]/5 -m-12 p-12">
+              <div className="max-w-7xl mx-auto">
+                {/* Header */}
+                <div className="mb-10">
+                  <h1 className="text-3xl font-bold text-slate-900 mb-3">Bus Availability Management</h1>
+                  <p className="text-lg text-slate-600">Manage and update bus availability status</p>
+                </div>
+
+                {/* Filters */}
+                <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8 mb-8">
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-3">
+                        Select Date
+                      </label>
+                      <input
+                        type="date"
+                        value={selectedDate}
+                        onChange={(e) => setSelectedDate(e.target.value)}
+                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#264b8d] focus:border-transparent transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-3">
+                        Filter by Bus
+                      </label>
+                      <select
+                        value={selectedBus}
+                        onChange={(e) => setSelectedBus(e.target.value)}
+                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#264b8d] focus:border-transparent transition-all bg-white"
+                      >
+                        <option value="">All Buses</option>
+                        <option value="EL-2456">EL-2456</option>
+                        <option value="ST-1823">ST-1823</option>
+                        <option value="NE-3421">NE-3421</option>
+                        <option value="HC-5632">HC-5632</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Availability List */}
+                <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
+                  <div className="p-8">
+                    <h2 className="text-2xl font-bold text-slate-900 mb-6">Bus Availability Status</h2>
+                    
+                    <div className="space-y-4">
+                      {availability
+                        .filter(bus => !selectedBus || bus.busNumber === selectedBus)
+                        .map((bus) => (
+                          <div
+                            key={bus.id}
+                            className="flex items-center justify-between p-6 bg-slate-50 rounded-xl border-2 border-slate-200 hover:shadow-md transition-all"
+                          >
+                            <div className="flex-1">
+                              <div className="flex items-center gap-4 mb-2">
+                                <Bus className="w-6 h-6 text-[#264b8d]" />
+                                <h3 className="text-xl font-bold text-slate-900">{bus.busNumber}</h3>
+                                <span className={`px-4 py-1.5 rounded-full text-sm font-semibold ${
+                                  bus.status === 'available' 
+                                    ? 'bg-emerald-100 text-emerald-700'
+                                    : 'bg-rose-100 text-rose-700'
+                                }`}>
+                                  {bus.status === 'available' ? (
+                                    <span className="flex items-center gap-1.5">
+                                      <CheckCircle className="w-4 h-4" />
+                                      Available
+                                    </span>
+                                  ) : (
+                                    <span className="flex items-center gap-1.5">
+                                      <XCircle className="w-4 h-4" />
+                                      Unavailable
+                                    </span>
+                                  )}
+                                </span>
+                              </div>
+                              <p className="text-slate-600 ml-10">{bus.route}</p>
+                              <p className="text-sm text-slate-500 ml-10">Date: {bus.date}</p>
+                            </div>
+                            <button
+                              onClick={() => toggleAvailability(bus.id)}
+                              className={`px-6 py-3 rounded-xl font-semibold transition-all shadow-md hover:shadow-lg border-2 ${
+                                bus.status === 'available'
+                                  ? 'bg-white text-rose-600 border-rose-600 hover:bg-rose-50'
+                                  : 'bg-white text-emerald-600 border-emerald-600 hover:bg-emerald-50'
+                              }`}
+                            >
+                              Mark as {bus.status === 'available' ? 'Unavailable' : 'Available'}
+                            </button>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+
+                  {/* Save Button */}
+                  <div className="bg-slate-50 px-8 py-6 border-t border-slate-200">
+                    <button
+                      onClick={handleSaveAvailability}
+                      className="flex items-center gap-3 px-8 py-4 bg-[#264b8d] text-white rounded-xl font-bold hover:bg-[#1e3a6d] transition-all shadow-lg hover:shadow-xl"
+                    >
+                      <Save className="w-5 h-5" />
+                      Save Changes
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Revenue View */}
+          {activeView === 'revenue' && (
+            <div>
+              <div className="mb-10">
+                <h1 className="text-3xl font-bold text-slate-900 mb-3">Revenue Reports</h1>
+                <p className="text-lg text-slate-600">View and analyze revenue data</p>
+              </div>
+              <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-12 text-center">
+                <TrendingUp className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                <p className="text-xl text-slate-600">Revenue reports coming soon...</p>
+              </div>
+            </div>
+          )}
+
+          {/* Trip History View */}
+          {activeView === 'history' && (
+            <div>
+              <div className="mb-10">
+                <h1 className="text-3xl font-bold text-slate-900 mb-3">Trip History</h1>
+                <p className="text-lg text-slate-600">View past trips and bookings</p>
+              </div>
+              <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-12 text-center">
+                <History className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                <p className="text-xl text-slate-600">Trip history coming soon...</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
       </div>
