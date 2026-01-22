@@ -131,30 +131,19 @@ export function MyBookings() {
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow">
         {/* Card Header */}
         <div className="bg-gradient-to-r from-[#264b8d] to-[#1e3a6d] p-6 text-white">
-          <div className="flex justify-between items-start">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <TicketIcon className="w-5 h-5" />
-                <span className="font-mono font-semibold text-sm">{booking.bookingId}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className={`inline-block px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(booking.status)}`}>
-                  {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-                </div>
-                {isTodaysTrip && (
-                  <div className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-300">
-                    Today
-                  </div>
-                )}
-              </div>
+          <div className="flex items-center gap-2 mb-2">
+            <TicketIcon className="w-5 h-5" />
+            <span className="font-mono font-semibold text-sm">{booking.bookingId}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className={`inline-block px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(booking.status)}`}>
+              {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
             </div>
-            <button
-              onClick={() => handleDownloadTicket(booking.bookingId)}
-              className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors backdrop-blur-sm"
-            >
-              <Download className="w-4 h-4" />
-              <span className="text-sm font-medium">Download</span>
-            </button>
+            {isTodaysTrip && (
+              <div className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-300">
+                Today
+              </div>
+            )}
           </div>
         </div>
 
@@ -243,16 +232,30 @@ export function MyBookings() {
             </div>
           </div>
 
-          {/* Track Bus Button (Only for Today's Trips) */}
-          {isTodaysTrip && (
-            <button
-              onClick={() => handleTrackBus(booking)}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-semibold hover:from-green-600 hover:to-green-700 transition-all shadow-md hover:shadow-lg"
-            >
-              <Navigation className="w-5 h-5" />
-              <span>Track Bus Location (Live)</span>
-            </button>
-          )}
+          {/* Action Buttons */}
+          <div className="flex gap-3">
+            {/* Track Bus Button (Only for Today's Trips) */}
+            {isTodaysTrip && (
+              <button
+                onClick={() => handleTrackBus(booking)}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-[#dfae6b] to-[#c99a5a] text-white rounded-xl font-semibold hover:from-[#c99a5a] hover:to-[#b8894a] transition-all shadow-md hover:shadow-lg"
+              >
+                <Navigation className="w-5 h-5" />
+                <span>Track Bus (Live)</span>
+              </button>
+            )}
+            
+            {/* Book Again Button (Only for Past Trips) */}
+            {booking.status === 'completed' && (
+              <button
+                onClick={() => navigate('/passenger')}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-[#dfae6b] to-[#c99a5a] text-white rounded-xl font-semibold hover:from-[#c99a5a] hover:to-[#b8894a] transition-all shadow-md hover:shadow-lg"
+              >
+                <Bus className="w-5 h-5" />
+                <span>Book Again</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -264,11 +267,20 @@ export function MyBookings() {
       <nav className="bg-white shadow-sm sticky top-0 z-50 border-b border-slate-200">
         <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
-            <div className="flex items-center gap-3">
-              <div className="bg-[#264b8d] p-2.5 rounded-xl">
-                <Bus className="w-6 h-6 text-white" />
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate('/passenger')}
+                className="flex items-center gap-2 px-4 py-2 text-[#264b8d] hover:bg-[#264b8d]/5 rounded-xl transition-colors font-medium"
+              >
+                ← Back
+              </button>
+              <div className="w-px h-8 bg-slate-200"></div>
+              <div className="flex items-center gap-3">
+                <div className="bg-[#264b8d] p-2.5 rounded-xl">
+                  <Bus className="w-6 h-6 text-white" />
+                </div>
+                <span className="text-2xl font-bold text-[#264b8d]">QuickSeat</span>
               </div>
-              <span className="text-2xl font-bold text-[#264b8d]">QuickSeat</span>
             </div>
             
             {/* User Profile Dropdown */}
@@ -348,31 +360,25 @@ export function MyBookings() {
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="w-full px-6 lg:px-10 py-12">
         {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={() => navigate('/passenger')}
-            className="text-[#264b8d] hover:text-[#1e3a6d] font-semibold mb-2 flex items-center gap-2"
-          >
-            ← Back to Dashboard
-          </button>
-          <h1 className="text-3xl font-bold text-slate-900">My Bookings</h1>
-          <p className="text-slate-600 mt-1">View and manage your bus ticket bookings</p>
+        <div className="mb-10">
+          <h1 className="text-4xl font-bold text-slate-900 mb-2">My Bookings</h1>
+          <p className="text-lg text-slate-600">View and manage your bus ticket bookings</p>
         </div>
 
         {/* Upcoming Bookings */}
         {upcomingBookings.length > 0 && (
-          <div className="mb-12">
+          <div className="mb-16">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-1 h-8 bg-[#264b8d] rounded"></div>
-              <h2 className="text-2xl font-bold text-slate-900">Upcoming Trips</h2>
-              <span className="px-3 py-1 bg-[#264b8d] text-white rounded-full text-sm font-semibold">
+              <div className="w-2 h-10 bg-gradient-to-b from-[#264b8d] to-[#1e3a6d] rounded-full"></div>
+              <h2 className="text-3xl font-bold text-slate-900">Upcoming Trips</h2>
+              <span className="px-4 py-1.5 bg-gradient-to-r from-[#264b8d] to-[#1e3a6d] text-white rounded-full text-sm font-semibold shadow-md">
                 {upcomingBookings.length}
               </span>
             </div>
-            <div className="grid md:grid-cols-2 gap-6">
-              {upcomingBookings.map(booking => (
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+              {upcomingBookings.map((booking) => (
                 <BookingCard key={booking.id} booking={booking} />
               ))}
             </div>
@@ -383,14 +389,14 @@ export function MyBookings() {
         {pastBookings.length > 0 && (
           <div>
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-1 h-8 bg-slate-400 rounded"></div>
-              <h2 className="text-2xl font-bold text-slate-900">Past Trips</h2>
-              <span className="px-3 py-1 bg-slate-200 text-slate-700 rounded-full text-sm font-semibold">
+              <div className="w-2 h-10 bg-gradient-to-b from-slate-400 to-slate-500 rounded-full"></div>
+              <h2 className="text-3xl font-bold text-slate-900">Past Trips</h2>
+              <span className="px-4 py-1.5 bg-slate-200 text-slate-700 rounded-full text-sm font-semibold shadow-md">
                 {pastBookings.length}
               </span>
             </div>
-            <div className="grid md:grid-cols-2 gap-6">
-              {pastBookings.map(booking => (
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+              {pastBookings.map((booking) => (
                 <BookingCard key={booking.id} booking={booking} />
               ))}
             </div>
@@ -416,15 +422,15 @@ export function MyBookings() {
       </div>
 
       {/* Footer */}
-      <footer className="bg-slate-900 text-slate-300 py-16 mt-12">
-        <div className="w-full px-4 sm:px-6 lg:px-8">
+      <footer className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-300 py-16 mt-16 border-t border-slate-700">
+        <div className="w-full px-6 lg:px-10">
           <div className="grid md:grid-cols-4 gap-12 mb-12">
             <div>
               <div className="flex items-center gap-3 mb-4">
-                <div className="bg-[#264b8d] p-2 rounded-xl">
+                <div className="bg-gradient-to-br from-[#264b8d] to-[#1e3a6d] p-2.5 rounded-xl shadow-lg">
                   <Bus className="w-6 h-6 text-white" />
                 </div>
-                <span className="text-xl font-bold text-white">QuickSeat</span>
+                <span className="text-2xl font-bold text-white">QuickSeat</span>
               </div>
               <p className="text-slate-400 leading-relaxed">
                 Making bus travel simple, comfortable and accessible for everyone.

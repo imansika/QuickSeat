@@ -6,11 +6,11 @@ import mongoose from 'mongoose';
 // Register a new bus
 export const registerBus = async (req: AuthRequest, res: Response) => {
   try {
-    const { busNumber, routeNumber, origin, destination, stops, seatCapacity, departureTime, arrivalTime, operatingDays, ratePerKm } = req.body;
+    const { busNumber, routeNumber, origin, destination, stops, seatCapacity, departureTime, operatingDays, ratePerKm } = req.body;
     const operatorId = req.user?.uid; // From auth middleware
 
     // Validation
-    if (!busNumber || !routeNumber || !origin || !destination || !seatCapacity || !departureTime || !arrivalTime || !ratePerKm) {
+    if (!busNumber || !routeNumber || !origin || !destination || !seatCapacity || !departureTime || !ratePerKm) {
       return res.status(400).json({ 
         success: false, 
         message: 'All fields are required' 
@@ -36,7 +36,6 @@ export const registerBus = async (req: AuthRequest, res: Response) => {
       stops: stops || [], // Optional stops array
       seatCapacity: parseInt(seatCapacity),
       departureTime,
-      arrivalTime,
       operatingDays: operatingDays || 'daily',
       ratePerKm: parseFloat(ratePerKm),
     });

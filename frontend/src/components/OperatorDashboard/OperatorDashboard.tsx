@@ -36,7 +36,6 @@ export function OperatorDashboard({
     destination: '',
     seatCapacity: '',
     departureTime: '',
-    arrivalTime: '',
     operatingDays: 'daily',
     ratePerKm: '',
   });
@@ -94,7 +93,6 @@ export function OperatorDashboard({
       newErrors.seatCapacity = 'Valid seat capacity is required';
     }
     if (!formData.departureTime) newErrors.departureTime = 'Departure time is required';
-    if (!formData.arrivalTime) newErrors.arrivalTime = 'Arrival time is required';
     if (!formData.ratePerKm || parseFloat(formData.ratePerKm) < 1) {
       newErrors.ratePerKm = 'Valid rate per km is required';
     }
@@ -119,7 +117,6 @@ export function OperatorDashboard({
           destination: '',
           seatCapacity: '',
           departureTime: '',
-          arrivalTime: '',
           operatingDays: 'daily',
           ratePerKm: '',
         });
@@ -847,25 +844,6 @@ export function OperatorDashboard({
                     />
                     {errors.departureTime && (
                       <p className="text-red-600 text-sm mt-1">{errors.departureTime}</p>
-                    )}
-                  </div>
-
-                  {/* Arrival Time */}
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
-                      <Clock className="w-4 h-4 text-[#264b8d]" />
-                      Arrival Time
-                    </label>
-                    <input
-                      type="time"
-                      value={formData.arrivalTime}
-                      onChange={(e) => setFormData({ ...formData, arrivalTime: e.target.value })}
-                      className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#264b8d] transition-all ${
-                        errors.arrivalTime ? 'border-red-300 bg-red-50' : 'border-slate-200'
-                      }`}
-                    />
-                    {errors.arrivalTime && (
-                      <p className="text-red-600 text-sm mt-1">{errors.arrivalTime}</p>
                     )}
                   </div>
 

@@ -15,7 +15,6 @@ export interface IBus extends Document {
   stops: IBusStop[]; // Array of stops along the route
   seatCapacity: number;
   departureTime: string;
-  arrivalTime: string;
   operatingDays: 'daily' | 'weekdays' | 'weekends';
   ratePerKm: number;
   isActive: boolean;
@@ -76,10 +75,6 @@ const BusSchema = new Schema<IBus>(
       min: 1,
     },
     departureTime: {
-      type: String,
-      required: true,
-    },
-    arrivalTime: {
       type: String,
       required: true,
     },
