@@ -16,7 +16,6 @@ export const registerBus = async (busData: {
   destination: string;
   seatCapacity: string;
   departureTime: string;
-  arrivalTime: string;
   operatingDays: string;
   ratePerKm: string;
 }) => {
