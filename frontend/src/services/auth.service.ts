@@ -2,13 +2,9 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
-  sendPasswordResetEmail,
   updateProfile,
   updateEmail,
   updatePassword,
-  GoogleAuthProvider,
-  FacebookAuthProvider,
-  signInWithPopup,
   type User as FirebaseUser,
 } from 'firebase/auth';
 import { auth } from '../firebase';
@@ -24,7 +20,7 @@ class AuthService {
         userData.password
       );
 
-      // Update user profile with display name
+    
       await updateProfile(userCredential.user, {
         displayName: userData.fullName,
       });
@@ -35,7 +31,7 @@ class AuthService {
     }
   }
 
-  // Sign in with email and password
+  // email and password
   async signIn(email: string, password: string): Promise<FirebaseUser> {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
@@ -45,27 +41,6 @@ class AuthService {
     }
   }
 
-  // Sign in with Google
-  async signInWithGoogle(): Promise<FirebaseUser> {
-    try {
-      const provider = new GoogleAuthProvider();
-      const userCredential = await signInWithPopup(auth, provider);
-      return userCredential.user;
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to sign in with Google');
-    }
-  }
-
-  // Sign in with Facebook
-  async signInWithFacebook(): Promise<FirebaseUser> {
-    try {
-      const provider = new FacebookAuthProvider();
-      const userCredential = await signInWithPopup(auth, provider);
-      return userCredential.user;
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to sign in with Facebook');
-    }
-  }
 
   // Sign out
   async signOut(): Promise<void> {
@@ -76,15 +51,7 @@ class AuthService {
     }
   }
 
-  // Send password reset email
-  async resetPassword(email: string): Promise<void> {
-    try {
-      await sendPasswordResetEmail(auth, email);
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to send password reset email');
-    }
-  }
-
+  
   // Update user profile
   async updateUserProfile(displayName: string, photoURL?: string): Promise<void> {
     try {

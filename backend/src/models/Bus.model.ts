@@ -2,17 +2,17 @@ import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IBusStop {
   name: string;
-  location: string; // Address or coordinates
-  arrivalTime?: string; // Optional time at this stop
+  location: string; 
+  
 }
 
 export interface IBus extends Document {
   busNumber: string;
   routeNumber: string;
-  operatorId: string; // Firebase UID of the operator who owns this bus
+  operatorId: string; 
   origin: string;
   destination: string;
-  stops: IBusStop[]; // Array of stops along the route
+  stops: IBusStop[]; 
   seatCapacity: number;
   departureTime: string;
   operatingDays: 'daily' | 'weekdays' | 'weekends';

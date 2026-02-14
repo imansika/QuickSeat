@@ -42,7 +42,7 @@
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
   
-  /* QuickSeat Brand Colors */
+  /* Colors */
   --color-brand-gold: #dfae6b;
   --color-brand-green: #4Ba950;
   --color-brand-blue: #264b8d;
@@ -138,9 +138,7 @@
   }
 }
 
-/**
- * Base typography. This is not applied to elements which have an ancestor with a Tailwind text class.
- */
+
 @layer base {
   :where(:not(:has([class*=' text-']), :not(:has([class^='text-'])))) {
     h1 {

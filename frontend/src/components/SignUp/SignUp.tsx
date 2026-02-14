@@ -34,13 +34,13 @@ export function SignUp({ onSignIn }: SignUpProps) {
     setLocalError('');
     clearError();
 
-    // Validate passwords match
+    
     if (formData.password !== formData.confirmPassword) {
       setLocalError('Passwords do not match');
       return;
     }
 
-    // Validate password length
+    
     if (formData.password.length < 6) {
       setLocalError('Password must be at least 6 characters');
       return;

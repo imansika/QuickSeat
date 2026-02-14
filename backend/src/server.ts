@@ -14,10 +14,25 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Database connection
-mongoose.connect(process.env.MONGO_URI as string)
-  .then(() => console.log("MongoDB connected"))
-  .catch(err => console.error(err));
+// Database connection with proper configuration
+mongoose.connect(process.env.MONGO_URI as string, {
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 45000,
+})
+  .then(() => console.log("✅ MongoDB connected successfully"))
+  .catch(err => {
+    console.error("❌ MongoDB connection error:", err.message);
+    console.log("⚠️  Server will continue running, but database operations will fail");
+  });
+
+// Handle MongoDB connection events
+mongoose.connection.on('disconnected', () => {
+  console.log('⚠️  MongoDB disconnected');
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('❌ MongoDB error:', err.message);
+});
 
 // Routes
 app.use('/api/auth', authRoutes);

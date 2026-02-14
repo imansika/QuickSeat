@@ -164,7 +164,7 @@ export const updateBus = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// Delete (deactivate) a bus
+// Delete  a bus
 export const deleteBus = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;

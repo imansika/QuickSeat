@@ -133,9 +133,9 @@ export function BusRouteMap({ origin, destination, buses, onClose }: BusRouteMap
           )}
         </div>
 
-        {/* Content */}
+      
         <div className="grid lg:grid-cols-3 gap-6 p-8 max-h-[calc(95vh-200px)] overflow-y-auto">
-          {/* Map Section */}
+          
           <div className="lg:col-span-2">
             <LoadScript googleMapsApiKey={apiKey}>
               <GoogleMap

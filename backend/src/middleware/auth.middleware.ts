@@ -9,7 +9,7 @@ export interface AuthRequest extends Request {
   };
 }
 
-// Verify Firebase token only (for user creation)
+// Verify Firebase token 
 export const verifyFirebaseTokenOnly = async (
   req: AuthRequest,
   res: Response,

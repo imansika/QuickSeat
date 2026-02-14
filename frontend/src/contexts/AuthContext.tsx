@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
 import { auth } from '../firebase';
-import type { User, UserProfile, CreateUserData, UpdateUserData } from '../types/user';
+import type {UserProfile, CreateUserData, UpdateUserData } from '../types/user';
 import { authService } from '../services/auth.service';
 import { userService } from '../services/user.service';
 
@@ -110,65 +110,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  // Sign in with Google
-  const signInWithGoogle = async () => {
-    try {
-      setError(null);
-      setLoading(true);
-      
-      const user = await authService.signInWithGoogle();
-      
-      // Try to load profile, create if doesn't exist
-      try {
-        const profile = await userService.getUserProfile(user.uid);
-        setUserProfile(profile);
-      } catch {
-        // Create profile if it doesn't exist
-        const profile = await userService.createUserProfile({
-          uid: user.uid,
-          email: user.email || '',
-          fullName: user.displayName || '',
-          phone: user.phoneNumber || '',
-        });
-        setUserProfile(profile);
-      }
-    } catch (err: any) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Sign in with Facebook
-  const signInWithFacebook = async () => {
-    try {
-      setError(null);
-      setLoading(true);
-      
-      const user = await authService.signInWithFacebook();
-      
-      // Try to load profile, create if doesn't exist
-      try {
-        const profile = await userService.getUserProfile(user.uid);
-        setUserProfile(profile);
-      } catch {
-        // Create profile if it doesn't exist
-        const profile = await userService.createUserProfile({
-          uid: user.uid,
-          email: user.email || '',
-          fullName: user.displayName || '',
-          phone: user.phoneNumber || '',
-        });
-        setUserProfile(profile);
-      }
-    } catch (err: any) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
+ 
 
   // Sign out
   const signOut = async () => {
@@ -182,16 +124,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  // Reset password
-  const resetPassword = async (email: string) => {
-    try {
-      setError(null);
-      await authService.resetPassword(email);
-    } catch (err: any) {
-      setError(err.message);
-      throw err;
-    }
-  };
+  
 
   // Update profile
   const updateProfile = async (updateData: UpdateUserData) => {
@@ -288,10 +221,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     error,
     signUp,
     signIn,
-    signInWithGoogle,
-    signInWithFacebook,
     signOut,
-    resetPassword,
     updateProfile,
     updateEmail,
     updatePassword,
