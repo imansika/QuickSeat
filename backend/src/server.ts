@@ -11,7 +11,7 @@ dotenv.config();
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors()); // REQUIRED: Allows frontend (port 5173) to talk to backend (port 5000)
 app.use(express.json());
 
 // Database connection with proper configuration
@@ -19,19 +19,19 @@ mongoose.connect(process.env.MONGO_URI as string, {
   serverSelectionTimeoutMS: 5000,
   socketTimeoutMS: 45000,
 })
-  .then(() => console.log("✅ MongoDB connected successfully"))
+  .then(() => console.log(" MongoDB connected successfully"))
   .catch(err => {
-    console.error("❌ MongoDB connection error:", err.message);
-    console.log("⚠️  Server will continue running, but database operations will fail");
+    console.error("MongoDB connection error:", err.message);
+    console.log("Server will continue running, but database operations will fail");
   });
 
 // Handle MongoDB connection events
 mongoose.connection.on('disconnected', () => {
-  console.log('⚠️  MongoDB disconnected');
+  console.log('MongoDB disconnected');
 });
 
 mongoose.connection.on('error', (err) => {
-  console.error('❌ MongoDB error:', err.message);
+  console.error('MongoDB error:', err.message);
 });
 
 // Routes
