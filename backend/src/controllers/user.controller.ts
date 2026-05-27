@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { User } from '../models/User.model';
 import { AuthRequest } from '../middleware/auth.middleware';
+import mongoose from 'mongoose';
+import admin from '../config/firebase.admin';
 
 export class UserController {
   // Create user profile
@@ -9,44 +11,139 @@ export class UserController {
       const { uid, email, fullName, phone, role } = req.body;
       console.log('Received user creation request:', { uid, email, fullName, phone, role });
 
-      // Check if user already exists
-      const existingUser = await User.findOne({ uid });
-      if (existingUser) {
-        console.log('User already exists:', uid);
-        return res.status(400).json({ message: 'User already exists' });
+      if (!uid || !email || !fullName || !phone) {
+        return res.status(400).json({ message: 'UID, email, full name, and phone are required' });
       }
 
-      // Validate role
-      const validRoles = ['user', 'operator', 'admin'];
-      const userRole = role && validRoles.includes(role) ? role : 'user';
+      if (!mongoose.connection.db) {
+        return res.status(503).json({ message: 'Database is not ready' });
+      }
 
-      const user = new User({
+      const usersCollection = mongoose.connection.db.collection('users');
+
+      const validRoles = ['user', 'operator', 'admin'];
+      const userRole = validRoles.includes(role) ? role : 'user';
+      const now = new Date();
+
+      const userDocument = {
         uid,
         email,
         fullName,
         phone,
         role: userRole,
+        photoURL: null,
+        isActive: true,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      console.log('Saving user profile to MongoDB:', {
+        uid,
+        email,
+        role: userRole,
       });
 
-      await user.save();
-      console.log('User created successfully in MongoDB:', user.uid);
+      await usersCollection.updateOne(
+        { uid },
+        {
+          $set: {
+            email,
+            fullName,
+            phone,
+            role: userRole,
+            photoURL: null,
+            isActive: true,
+            updatedAt: now,
+          },
+          $setOnInsert: {
+            createdAt: now,
+          },
+        },
+        { upsert: true }
+      );
+
+      const savedUser = await usersCollection.findOne({ uid });
+      console.log('User created successfully in MongoDB:', uid);
 
       res.status(201).json({
         message: 'User created successfully',
         user: {
-          uid: user.uid,
-          email: user.email,
-          fullName: user.fullName,
-          phone: user.phone,
-          photoURL: user.photoURL,
-          role: user.role,
-          createdAt: user.createdAt,
-          updatedAt: user.updatedAt,
+          uid: savedUser?.uid ?? uid,
+          email: savedUser?.email ?? email,
+          fullName: savedUser?.fullName ?? fullName,
+          phone: savedUser?.phone ?? phone,
+          photoURL: savedUser?.photoURL ?? null,
+          role: savedUser?.role ?? userRole,
+          isActive: savedUser?.isActive ?? true,
+          createdAt: savedUser?.createdAt ?? now,
+          updatedAt: savedUser?.updatedAt ?? now,
         },
       });
     } catch (error: any) {
-      console.error('Create user error:', error);
+      console.error('Create user error:', {
+        message: error?.message,
+        name: error?.name,
+        code: error?.code,
+        stack: error?.stack,
+      });
       res.status(500).json({ message: error.message || 'Failed to create user' });
+    }
+  }
+
+  // Create operator account (admin only)
+  async createOperatorAccount(req: AuthRequest, res: Response) {
+    try {
+      const { email, password, fullName, phone } = req.body;
+
+      if (!email || !password || !fullName || !phone) {
+        return res.status(400).json({ message: 'Email, password, full name, and phone are required' });
+      }
+
+      const normalizedEmail = String(email).trim().toLowerCase();
+      const normalizedFullName = String(fullName).trim();
+      const normalizedPhone = String(phone).trim();
+
+      const authUser = await admin.auth().createUser({
+        email: normalizedEmail,
+        password,
+        displayName: normalizedFullName,
+      });
+
+      const createdAt = new Date();
+
+      try {
+        await User.create({
+          uid: authUser.uid,
+          email: normalizedEmail,
+          fullName: normalizedFullName,
+          phone: normalizedPhone,
+          role: 'operator',
+          isActive: true,
+          createdAt,
+          updatedAt: createdAt,
+        });
+      } catch (dbError) {
+        await admin.auth().deleteUser(authUser.uid);
+        throw dbError;
+      }
+
+      res.status(201).json({
+        message: 'Operator created successfully',
+        user: {
+          uid: authUser.uid,
+          email: normalizedEmail,
+          fullName: normalizedFullName,
+          phone: normalizedPhone,
+          photoURL: undefined,
+          role: 'operator',
+          isActive: true,
+          createdAt,
+          updatedAt: createdAt,
+        },
+      });
+    } catch (error: any) {
+      console.error('Create operator error:', error);
+      res.status(500).json({ message: error.message || 'Failed to create operator' });
     }
   }
 

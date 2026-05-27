@@ -7,7 +7,6 @@ import mongoose from 'mongoose';
 export const registerBus = async (req: AuthRequest, res: Response) => {
   try {
     const { busNumber, routeNumber, origin, destination, stops, seatCapacity, departureTime, operatingDays, ratePerKm } = req.body;
-    const operatorId = req.user?.uid; // From auth middleware
 
     // Validation
     if (!busNumber || !routeNumber || !origin || !destination || !seatCapacity || !departureTime || !ratePerKm) {
@@ -30,7 +29,6 @@ export const registerBus = async (req: AuthRequest, res: Response) => {
     const bus = new Bus({
       busNumber: busNumber.toUpperCase(),
       routeNumber,
-      operatorId,
       origin,
       destination,
       stops: stops || [], // Optional stops array
@@ -57,12 +55,10 @@ export const registerBus = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// Get all buses for an operator
+// Get all buses for shared operator dashboard
 export const getOperatorBuses = async (req: AuthRequest, res: Response) => {
   try {
-    const operatorId = req.user?.uid;
-
-    const buses = await Bus.find({ operatorId, isActive: true })
+    const buses = await Bus.find({})
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -84,9 +80,7 @@ export const getOperatorBuses = async (req: AuthRequest, res: Response) => {
 export const getBusById = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const operatorId = req.user?.uid;
-
-    const bus = await Bus.findOne({ _id: id, operatorId });
+    const bus = await Bus.findOne({ _id: id });
 
     if (!bus) {
       return res.status(404).json({
@@ -113,11 +107,9 @@ export const getBusById = async (req: AuthRequest, res: Response) => {
 export const updateBus = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const operatorId = req.user?.uid;
     const updateData = req.body;
 
     // Remove fields that shouldn't be updated directly
-    delete updateData.operatorId;
     delete updateData.createdAt;
     delete updateData.updatedAt;
 
@@ -137,7 +129,7 @@ export const updateBus = async (req: AuthRequest, res: Response) => {
     }
 
     const bus = await Bus.findOneAndUpdate(
-      { _id: id, operatorId },
+      { _id: id },
       updateData,
       { new: true, runValidators: true }
     );
@@ -168,12 +160,8 @@ export const updateBus = async (req: AuthRequest, res: Response) => {
 export const deleteBus = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const operatorId = req.user?.uid;
-
-    const bus = await Bus.findOneAndUpdate(
-      { _id: id, operatorId },
-      { isActive: false },
-      { new: true }
+    const bus = await Bus.findOneAndDelete(
+      { _id: id }
     );
 
     if (!bus) {
@@ -185,7 +173,7 @@ export const deleteBus = async (req: AuthRequest, res: Response) => {
 
     res.status(200).json({
       success: true,
-      message: 'Bus deactivated successfully',
+      message: 'Bus deleted successfully',
       data: bus,
     });
   } catch (error: any) {
@@ -203,7 +191,7 @@ export const searchBuses = async (req: AuthRequest, res: Response) => {
   try {
     const { origin, destination, date } = req.query;
 
-    const query: any = { isActive: true };
+    const query: any = {};
 
     if (origin) {
       query.origin = { $regex: new RegExp(origin as string, 'i') };

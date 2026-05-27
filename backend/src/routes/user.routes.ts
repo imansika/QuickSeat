@@ -6,6 +6,7 @@ const router = Router();
 
 // Public routes (require authentication only)
 router.post('/users', verifyFirebaseTokenOnly, userController.createUser);
+router.post('/users/operator/register', verifyFirebaseToken, checkRole(['admin', 'operator']), userController.createOperatorAccount);
 router.get('/users/:uid', verifyFirebaseToken, userController.getUserByUid);
 router.put('/users/:uid', verifyFirebaseToken, userController.updateUser);
 router.delete('/users/:uid', verifyFirebaseToken, userController.deleteUser);

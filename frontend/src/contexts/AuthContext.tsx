@@ -11,6 +11,7 @@ interface AuthContextType {
   loading: boolean;
   error: string | null;
   signUp: (userData: CreateUserData) => Promise<void>;
+  registerOperator: (userData: CreateUserData) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signInWithFacebook: () => Promise<void>;
@@ -78,6 +79,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setLoading(true);
       
       const user = await authService.signUp(userData);
+      const authToken = await user.getIdToken(true);
       
       // Create user profile in database
       const profile = await userService.createUserProfile({
@@ -85,9 +87,36 @@ export function AuthProvider({ children }: AuthProviderProps) {
         email: userData.email,
         fullName: userData.fullName,
         phone: userData.phone,
+        role: userData.role,
+        authToken,
       });
       
       setUserProfile(profile);
+    } catch (err: any) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Register operator using the same Firebase-first flow as user signup
+  const registerOperator = async (userData: CreateUserData) => {
+    try {
+      setError(null);
+      setLoading(true);
+
+      const profile = await userService.createOperatorAccount({
+        email: userData.email,
+        password: userData.password,
+        fullName: userData.fullName,
+        phone: userData.phone,
+      });
+
+      // Keep the current operator session intact; only the new operator is created.
+      if (profile && currentUser) {
+        await loadUserProfile(currentUser.uid);
+      }
     } catch (err: any) {
       setError(err.message);
       throw err;
@@ -220,6 +249,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     loading,
     error,
     signUp,
+    registerOperator,
     signIn,
     signOut,
     updateProfile,

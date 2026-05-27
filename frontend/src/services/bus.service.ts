@@ -37,7 +37,7 @@ export const registerBus = async (busData: {
   }
 };
 
-// Get all buses for the logged-in operator
+// Get all active buses shared across operators
 export const getOperatorBuses = async () => {
   try {
     const token = await getAuthToken();

@@ -16,18 +16,20 @@ class AuthService {
     try {
       const userCredential = await createUserWithEmailAndPassword(
         auth,
-        userData.email,
+        userData.email.trim(),
         userData.password
       );
 
-    
       await updateProfile(userCredential.user, {
         displayName: userData.fullName,
       });
 
       return userCredential.user;
     } catch (error: any) {
-      throw new Error(error.message || 'Failed to create account');
+      const authError = error as { code?: string; message?: string };
+      const enhancedError = new Error(authError.message || 'Failed to create account');
+      (enhancedError as Error & { code?: string }).code = authError.code;
+      throw enhancedError;
     }
   }
 
@@ -37,7 +39,10 @@ class AuthService {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       return userCredential.user;
     } catch (error: any) {
-      throw new Error(error.message || 'Failed to sign in');
+      const authError = error as { code?: string; message?: string };
+      const enhancedError = new Error(authError.message || 'Failed to sign in');
+      (enhancedError as Error & { code?: string }).code = authError.code;
+      throw enhancedError;
     }
   }
 
@@ -99,13 +104,25 @@ class AuthService {
     return auth.currentUser;
   }
 
+  async deleteCurrentUser(): Promise<void> {
+    try {
+      if (!auth.currentUser) {
+        return;
+      }
+
+      await auth.currentUser.delete();
+    } catch (error: any) {
+      throw new Error(error.message || 'Failed to delete current user');
+    }
+  }
+
   // Get ID token
-  async getIdToken(): Promise<string | null> {
+  async getIdToken(forceRefresh = false): Promise<string | null> {
     try {
       if (!auth.currentUser) {
         return null;
       }
-      return await auth.currentUser.getIdToken();
+      return await auth.currentUser.getIdToken(forceRefresh);
     } catch (error: any) {
       throw new Error(error.message || 'Failed to get ID token');
     }

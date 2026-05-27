@@ -1,19 +1,26 @@
 import { useState, useEffect } from 'react';
-import { Bus, Plus, UserPlus, Edit3, Calendar, TrendingUp, History, LogOut, BarChart3, Users, Clock, MapPin, X, Hash, Save, ChevronDown, User, Settings, Trash2, CheckCircle, XCircle } from 'lucide-react';
+import { Bus, Plus, UserPlus, Edit3, Calendar, TrendingUp, History, LogOut, BarChart3, Users, Clock, MapPin, X, Hash, Save, ChevronDown, User, Settings, Trash2, CheckCircle, XCircle, AlertCircle, Loader } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { registerBus, getOperatorBuses, deleteBus } from '../../services/bus.service';
+import { getAvailabilityByDate, setAvailability as updateAvailability } from '../../services/availability.service';
 import { useAuth } from '../../contexts/AuthContext';
+import { RegisterOperator } from '../RegisterOperator';
+import { RevenueReport } from '../RevenueReport/RevenueReport';
 
 interface OperatorDashboardProps {
   onLogout: () => void;
   onUpdateBus: (busData?: any) => void;
+  initialView?: 'dashboard' | 'availability' | 'revenue' | 'history' | 'register-operator';
 }
 
 export function OperatorDashboard({
   onLogout,
-  onUpdateBus
+  onUpdateBus,
+  initialView,
 }: OperatorDashboardProps) {
+  const navigate = useNavigate();
   const { currentUser, userProfile } = useAuth();
-  const [activeView, setActiveView] = useState<'dashboard' | 'availability' | 'revenue' | 'history'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'availability' | 'revenue' | 'history' | 'register-operator'>(initialView || 'dashboard');
   const [showBusModal, setShowBusModal] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [registeredBuses, setRegisteredBuses] = useState<any[]>([]);
@@ -22,12 +29,11 @@ export function OperatorDashboard({
   // Availability states
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedBus, setSelectedBus] = useState('');
-  const [availability, setAvailability] = useState<any[]>([
-    { id: '1', busNumber: 'EL-2456', route: 'Colombo → Kandy', date: '2026-01-25', status: 'available' },
-    { id: '2', busNumber: 'ST-1823', route: 'Galle → Colombo', date: '2026-01-25', status: 'available' },
-    { id: '3', busNumber: 'NE-3421', route: 'Colombo → Jaffna', date: '2026-01-25', status: 'unavailable' },
-    { id: '4', busNumber: 'HC-5632', route: 'Kandy → Nuwara Eliya', date: '2026-01-25', status: 'available' },
-  ]);
+  const [availability, setAvailability] = useState<any[]>([]);
+  const [isLoadingAvailability, setIsLoadingAvailability] = useState(false);
+  const [isSavingAvailability, setIsSavingAvailability] = useState(false);
+  const [availabilityError, setAvailabilityError] = useState('');
+  const [availabilitySuccess, setAvailabilitySuccess] = useState('');
   
   const [formData, setFormData] = useState({
     busNumber: '',
@@ -43,17 +49,40 @@ export function OperatorDashboard({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Availability toggle function
-  const toggleAvailability = (id: string) => {
-    setAvailability(prev => prev.map(bus => 
-      bus.id === id 
-        ? { ...bus, status: bus.status === 'available' ? 'unavailable' : 'available' }
+  const toggleAvailability = (busNumber: string) => {
+    setAvailability(prev => prev.map(bus =>
+      bus.busNumber === busNumber
+        ? { ...bus, availability: !bus.availability }
         : bus
     ));
   };
 
-  const handleSaveAvailability = () => {
-    console.log('Saving availability:', availability);
-    alert('Availability changes saved successfully!');
+  const handleSaveAvailability = async () => {
+    if (!selectedDate) {
+      setAvailabilityError('Please select a date first');
+      return;
+    }
+
+    try {
+      setIsSavingAvailability(true);
+      setAvailabilityError('');
+      setAvailabilitySuccess('');
+
+      for (const record of availability) {
+        await updateAvailability({
+          busNumber: record.busNumber,
+          date: selectedDate,
+          availability: record.availability,
+        });
+      }
+
+      setAvailabilitySuccess('Availability updated successfully!');
+      setTimeout(() => setAvailabilitySuccess(''), 3000);
+    } catch (error: any) {
+      setAvailabilityError(error.message || 'Failed to update availability');
+    } finally {
+      setIsSavingAvailability(false);
+    }
   };
 
   // Fetch buses when component mounts
@@ -61,13 +90,19 @@ export function OperatorDashboard({
     fetchBuses();
   }, []);
 
+  // Sync initialView prop to state when provided
+  useEffect(() => {
+    if (initialView) setActiveView(initialView);
+  }, [initialView]);
+
   const fetchBuses = async () => {
     try {
       setIsLoadingBuses(true);
-      console.log('Fetching operator buses...');
+      console.log('Fetching shared buses for all operators...');
       const response = await getOperatorBuses();
       console.log('Buses fetched successfully:', response);
-      setRegisteredBuses(response.data || []);
+      const buses = response.data || [];
+      setRegisteredBuses(buses);
     } catch (error: any) {
       console.error('Failed to fetch buses:', error);
       alert(`Failed to load buses: ${error.message || 'Please try again'}`);
@@ -75,6 +110,49 @@ export function OperatorDashboard({
       setIsLoadingBuses(false);
     }
   };
+
+  const fetchAvailabilityForDate = async (date: string) => {
+    try {
+      setIsLoadingAvailability(true);
+      setAvailabilityError('');
+      const response = await getAvailabilityByDate(date);
+      const availabilityRecords = response.data || [];
+
+      const mapped = registeredBuses.map((bus: any) => {
+        const availabilityRecord = availabilityRecords.find(
+          (record: any) => (record.busNumber || '').toUpperCase() === (bus.busNumber || '').toUpperCase()
+        );
+
+        return {
+        id: bus._id ?? bus.id ?? bus.busNumber,
+        busNumber: bus.busNumber,
+        route: `${bus.origin} → ${bus.destination}`,
+        date,
+        availability: availabilityRecord ? availabilityRecord.availability === true : true,
+        };
+      });
+
+      setAvailability(mapped);
+    } catch (error: any) {
+      setAvailabilityError(error.message || 'Failed to fetch availability');
+    } finally {
+      setIsLoadingAvailability(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!selectedDate) {
+      setAvailability([]);
+      return;
+    }
+
+    if (registeredBuses.length === 0) {
+      setAvailability([]);
+      return;
+    }
+
+    fetchAvailabilityForDate(selectedDate);
+  }, [selectedDate, registeredBuses]);
 
   const sriLankanCities = [
     'Colombo', 'Kandy', 'Galle', 'Jaffna', 'Negombo', 
@@ -132,12 +210,16 @@ export function OperatorDashboard({
     }
   };
 
-  // Mock statistics
+  const totalBuses = registeredBuses.length;
+  const activeRoutes = new Set(registeredBuses.map((bus: any) => bus.routeNumber || `${bus.origin}-${bus.destination}`)).size;
+  const totalSeats = registeredBuses.reduce((sum: number, bus: any) => sum + (Number(bus.seatCapacity) || 0), 0);
+  const activeBuses = totalBuses;
+
   const stats = [
-    { label: 'Total Buses', value: registeredBuses.length.toString(), icon: Bus },
-    { label: 'Active Routes', value: '12', icon: BarChart3 },
-    { label: 'Today\'s Bookings', value: '156', icon: Users },
-    { label: 'Monthly Revenue', value: 'Rs. 2.4M', icon: TrendingUp },
+    { label: 'Total Buses', value: totalBuses.toString(), icon: Bus },
+    { label: 'Active Routes', value: activeRoutes.toString(), icon: BarChart3 },
+    { label: 'Active Buses', value: activeBuses.toString(), icon: Users },
+    { label: 'Total Seats', value: totalSeats.toString(), icon: TrendingUp },
   ];
 
   return (
@@ -175,7 +257,10 @@ export function OperatorDashboard({
             </button>
 
             <button
-              onClick={() => {}}
+              onClick={() => {
+                setActiveView('register-operator');
+                navigate('/operator/register-operator');
+              }}
               className={`w-full flex items-center gap-4 px-5 py-4 rounded-xl text-left transition-all group shadow-md hover:shadow-xl ${
                 false ? 'bg-white text-[#264b8d]' : 'text-white hover:bg-white hover:text-[#264b8d]'
               }`}
@@ -294,7 +379,7 @@ export function OperatorDashboard({
                     <button
                       onClick={() => {
                         setShowProfileMenu(false);
-                        // Profile functionality
+                        navigate('/profile');
                       }}
                       className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 transition-colors"
                     >
@@ -400,7 +485,7 @@ export function OperatorDashboard({
                   <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-8">
                     {registeredBuses.map((bus) => (
                     <div
-                      key={bus.id}
+                      key={bus._id ?? bus.id ?? `${bus.busNumber}-${bus.routeNumber ?? ''}`}
                       className="bg-white rounded-3xl shadow-md border-2 border-slate-100 p-8 hover:shadow-xl transition-all group hover:-translate-y-1"
                     >
                       <div className="flex items-start justify-between mb-6">
@@ -477,6 +562,13 @@ export function OperatorDashboard({
             </>
           )}
 
+          {/* Register Operator View */}
+          {activeView === 'register-operator' && (
+            <div className="min-h-[calc(100vh-12rem)]">
+              <RegisterOperator />
+            </div>
+          )}
+
           {/* Availability View */}
           {activeView === 'availability' && (
             <div className="min-h-[calc(100vh-12rem)] bg-gradient-to-br from-[#264b8d]/5 via-slate-50 to-[#dfae6b]/5 -m-12 p-12">
@@ -511,14 +603,29 @@ export function OperatorDashboard({
                         className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#264b8d] focus:border-transparent transition-all bg-white"
                       >
                         <option value="">All Buses</option>
-                        <option value="EL-2456">EL-2456</option>
-                        <option value="ST-1823">ST-1823</option>
-                        <option value="NE-3421">NE-3421</option>
-                        <option value="HC-5632">HC-5632</option>
+                        {registeredBuses.map((bus: any) => (
+                          <option key={bus._id ?? bus.id ?? bus.busNumber} value={bus.busNumber}>
+                            {bus.busNumber}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>
                 </div>
+
+                {availabilityError && (
+                  <div className="flex items-center gap-3 p-4 mb-8 bg-red-50 border-2 border-red-200 rounded-xl">
+                    <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+                    <p className="text-sm font-semibold text-red-900">{availabilityError}</p>
+                  </div>
+                )}
+
+                {availabilitySuccess && (
+                  <div className="flex items-center gap-3 p-4 mb-8 bg-green-50 border-2 border-green-200 rounded-xl">
+                    <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                    <p className="text-sm font-semibold text-green-900">{availabilitySuccess}</p>
+                  </div>
+                )}
 
                 {/* Availability List */}
                 <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
@@ -526,50 +633,72 @@ export function OperatorDashboard({
                     <h2 className="text-2xl font-bold text-slate-900 mb-6">Bus Availability Status</h2>
                     
                     <div className="space-y-4">
-                      {availability
-                        .filter(bus => !selectedBus || bus.busNumber === selectedBus)
-                        .map((bus) => (
-                          <div
-                            key={bus.id}
-                            className="flex items-center justify-between p-6 bg-slate-50 rounded-xl border-2 border-slate-200 hover:shadow-md transition-all"
-                          >
-                            <div className="flex-1">
-                              <div className="flex items-center gap-4 mb-2">
-                                <Bus className="w-6 h-6 text-[#264b8d]" />
-                                <h3 className="text-xl font-bold text-slate-900">{bus.busNumber}</h3>
-                                <span className={`px-4 py-1.5 rounded-full text-sm font-semibold ${
-                                  bus.status === 'available' 
-                                    ? 'bg-emerald-100 text-emerald-700'
-                                    : 'bg-rose-100 text-rose-700'
-                                }`}>
-                                  {bus.status === 'available' ? (
-                                    <span className="flex items-center gap-1.5">
-                                      <CheckCircle className="w-4 h-4" />
-                                      Available
-                                    </span>
-                                  ) : (
-                                    <span className="flex items-center gap-1.5">
-                                      <XCircle className="w-4 h-4" />
-                                      Unavailable
-                                    </span>
-                                  )}
-                                </span>
-                              </div>
-                              <p className="text-slate-600 ml-10">{bus.route}</p>
-                              <p className="text-sm text-slate-500 ml-10">Date: {bus.date}</p>
-                            </div>
-                            <button
-                              onClick={() => toggleAvailability(bus.id)}
-                              className={`px-6 py-3 rounded-xl font-semibold transition-all shadow-md hover:shadow-lg border-2 ${
-                                bus.status === 'available'
-                                  ? 'bg-white text-rose-600 border-rose-600 hover:bg-rose-50'
-                                  : 'bg-white text-emerald-600 border-emerald-600 hover:bg-emerald-50'
-                              }`}
-                            >
-                              Mark as {bus.status === 'available' ? 'Unavailable' : 'Available'}
-                            </button>
+                      {!selectedDate ? (
+                        <div className="flex items-center gap-3 p-6 bg-amber-50 border-2 border-amber-200 rounded-xl">
+                          <AlertCircle className="w-6 h-6 text-amber-600 flex-shrink-0" />
+                          <div>
+                            <p className="font-semibold text-amber-900">Select a date to get started</p>
+                            <p className="text-sm text-amber-700">Choose a date to view and update availability</p>
                           </div>
-                        ))}
+                        </div>
+                      ) : isLoadingAvailability ? (
+                        <div className="flex items-center justify-center p-12">
+                          <Loader className="w-8 h-8 text-[#264b8d] animate-spin" />
+                        </div>
+                      ) : availability.length === 0 ? (
+                        <div className="flex items-center gap-3 p-6 bg-slate-50 border-2 border-slate-200 rounded-xl">
+                          <AlertCircle className="w-6 h-6 text-slate-600 flex-shrink-0" />
+                          <div>
+                            <p className="font-semibold text-slate-900">No buses found</p>
+                            <p className="text-sm text-slate-600">Register buses to manage availability</p>
+                          </div>
+                        </div>
+                      ) : (
+                        availability
+                          .filter(bus => !selectedBus || bus.busNumber === selectedBus)
+                          .map((bus) => (
+                            <div
+                              key={bus.id}
+                              className="flex items-center justify-between p-6 bg-slate-50 rounded-xl border-2 border-slate-200 hover:shadow-md transition-all"
+                            >
+                              <div className="flex-1">
+                                <div className="flex items-center gap-4 mb-2">
+                                  <Bus className="w-6 h-6 text-[#264b8d]" />
+                                  <h3 className="text-xl font-bold text-slate-900">{bus.busNumber}</h3>
+                                  <span className={`px-4 py-1.5 rounded-full text-sm font-semibold ${
+                                    bus.availability
+                                      ? 'bg-emerald-100 text-emerald-700'
+                                      : 'bg-rose-100 text-rose-700'
+                                  }`}>
+                                    {bus.availability ? (
+                                      <span className="flex items-center gap-1.5">
+                                        <CheckCircle className="w-4 h-4" />
+                                        Available
+                                      </span>
+                                    ) : (
+                                      <span className="flex items-center gap-1.5">
+                                        <XCircle className="w-4 h-4" />
+                                        Unavailable
+                                      </span>
+                                    )}
+                                  </span>
+                                </div>
+                                <p className="text-slate-600 ml-10">{bus.route}</p>
+                                <p className="text-sm text-slate-500 ml-10">Date: {bus.date}</p>
+                              </div>
+                              <button
+                                onClick={() => toggleAvailability(bus.busNumber)}
+                                className={`px-6 py-3 rounded-xl font-semibold transition-all shadow-md hover:shadow-lg border-2 ${
+                                  bus.availability
+                                    ? 'bg-white text-rose-600 border-rose-600 hover:bg-rose-50'
+                                    : 'bg-white text-emerald-600 border-emerald-600 hover:bg-emerald-50'
+                                }`}
+                              >
+                                Mark as {bus.availability ? 'Unavailable' : 'Available'}
+                              </button>
+                            </div>
+                          ))
+                      )}
                     </div>
                   </div>
 
@@ -577,10 +706,20 @@ export function OperatorDashboard({
                   <div className="bg-slate-50 px-8 py-6 border-t border-slate-200">
                     <button
                       onClick={handleSaveAvailability}
-                      className="flex items-center gap-3 px-8 py-4 bg-[#264b8d] text-white rounded-xl font-bold hover:bg-[#1e3a6d] transition-all shadow-lg hover:shadow-xl"
+                      disabled={isSavingAvailability || !selectedDate || availability.length === 0}
+                      className="flex items-center gap-3 px-8 py-4 bg-[#264b8d] text-white rounded-xl font-bold hover:bg-[#1e3a6d] transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <Save className="w-5 h-5" />
-                      Save Changes
+                      {isSavingAvailability ? (
+                        <>
+                          <Loader className="w-5 h-5 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-5 h-5" />
+                          Save Changes
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -589,18 +728,7 @@ export function OperatorDashboard({
           )}
 
           {/* Revenue View */}
-          {activeView === 'revenue' && (
-            <div>
-              <div className="mb-10">
-                <h1 className="text-3xl font-bold text-slate-900 mb-3">Revenue Reports</h1>
-                <p className="text-lg text-slate-600">View and analyze revenue data</p>
-              </div>
-              <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-12 text-center">
-                <TrendingUp className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                <p className="text-xl text-slate-600">Revenue reports coming soon...</p>
-              </div>
-            </div>
-          )}
+          {activeView === 'revenue' && <RevenueReport />}
 
           {/* Trip History View */}
           {activeView === 'history' && (
@@ -946,6 +1074,7 @@ export function OperatorDashboard({
           </div>
         </div>
       )}
+
     </div>
   );
 }

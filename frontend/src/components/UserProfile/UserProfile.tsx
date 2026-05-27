@@ -21,8 +21,8 @@ export function UserProfile() {
     name: userProfile?.fullName || 'Kasun Perera',
     email: userProfile?.email || 'kasun.perera@example.com',
     phone: userProfile?.phone || '+94 77 123 4567',
-    address: '123 Galle Road, Colombo 03, Sri Lanka',
-    dateOfBirth: '1990-05-15',
+    address: '',
+    dateOfBirth: '',
     imageUrl: userProfile?.photoURL || '',
   });
 
@@ -254,8 +254,10 @@ export function UserProfile() {
                         rows={2}
                         className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#dfae6b] focus:border-transparent resize-none"
                       />
-                    ) : (
+                    ) : userData.address ? (
                       <p className="text-lg font-semibold text-slate-900">{userData.address}</p>
+                    ) : (
+                      <p className="text-lg font-semibold text-slate-400">Click Edit Profile to add</p>
                     )}
                   </div>
                 </div>
@@ -278,7 +280,7 @@ export function UserProfile() {
                         onChange={(e) => setEditedData({ ...editedData, dateOfBirth: e.target.value })}
                         className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#dfae6b] focus:border-transparent"
                       />
-                    ) : (
+                    ) : userData.dateOfBirth ? (
                       <p className="text-lg font-semibold text-slate-900">
                         {new Date(userData.dateOfBirth).toLocaleDateString('en-GB', {
                           day: 'numeric',
@@ -286,6 +288,8 @@ export function UserProfile() {
                           year: 'numeric'
                         })}
                       </p>
+                    ) : (
+                      <p className="text-lg font-semibold text-slate-400">Click Edit Profile to add</p>
                     )}
                   </div>
                 </div>

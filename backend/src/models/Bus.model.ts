@@ -9,7 +9,6 @@ export interface IBusStop {
 export interface IBus extends Document {
   busNumber: string;
   routeNumber: string;
-  operatorId: string; 
   origin: string;
   destination: string;
   stops: IBusStop[]; 
@@ -17,7 +16,6 @@ export interface IBus extends Document {
   departureTime: string;
   operatingDays: 'daily' | 'weekdays' | 'weekends';
   ratePerKm: number;
-  isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -35,11 +33,6 @@ const BusSchema = new Schema<IBus>(
       type: String,
       required: true,
       trim: true,
-    },
-    operatorId: {
-      type: String,
-      required: true,
-      index: true,
     },
     origin: {
       type: String,
@@ -88,10 +81,7 @@ const BusSchema = new Schema<IBus>(
       required: true,
       min: 0,
     },
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
+    
   },
   {
     timestamps: true,
@@ -99,7 +89,6 @@ const BusSchema = new Schema<IBus>(
 );
 
 // Index for faster queries
-BusSchema.index({ operatorId: 1, isActive: 1 });
 BusSchema.index({ origin: 1, destination: 1 });
 
 const Bus = mongoose.model<IBus>('Bus', BusSchema);

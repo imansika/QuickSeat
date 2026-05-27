@@ -1,1 +1,0 @@
-export { UpdateAvailability } from './UpdateAvailability';

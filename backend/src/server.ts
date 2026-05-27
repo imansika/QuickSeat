@@ -5,6 +5,7 @@ import cors from "cors";
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
 import busRoutes from "./routes/bus.routes";
+import availabilityRoutes from "./routes/availability.routes";
 
 dotenv.config();
 
@@ -15,15 +16,11 @@ app.use(cors()); // REQUIRED: Allows frontend (port 5173) to talk to backend (po
 app.use(express.json());
 
 // Database connection with proper configuration
-mongoose.connect(process.env.MONGO_URI as string, {
-  serverSelectionTimeoutMS: 5000,
-  socketTimeoutMS: 45000,
-})
-  .then(() => console.log(" MongoDB connected successfully"))
-  .catch(err => {
-    console.error("MongoDB connection error:", err.message);
-    console.log("Server will continue running, but database operations will fail");
-  });
+const mongoUri = process.env.MONGO_URI;
+
+if (!mongoUri) {
+  throw new Error('MONGO_URI is not configured');
+}
 
 // Handle MongoDB connection events
 mongoose.connection.on('disconnected', () => {
@@ -38,6 +35,7 @@ mongoose.connection.on('error', (err) => {
 app.use('/api/auth', authRoutes);
 app.use('/api', userRoutes);
 app.use('/api', busRoutes);
+app.use('/api', availabilityRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -45,4 +43,21 @@ app.get('/health', (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+async function startServer() {
+  try {
+    await mongoose.connect(mongoUri as string, {
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+    });
+
+    console.log('MongoDB connected successfully');
+
+    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  } catch (err: any) {
+    console.error('MongoDB connection error:', err.message);
+    process.exit(1);
+  }
+}
+
+void startServer();

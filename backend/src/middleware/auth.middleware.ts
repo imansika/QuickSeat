@@ -34,7 +34,10 @@ export const verifyFirebaseTokenOnly = async (
 
     next();
   } catch (error) {
-    console.error('Token verification error:', error);
+    console.error('Token verification error:', {
+      message: error instanceof Error ? error.message : String(error),
+      code: (error as any)?.code,
+    });
     return res.status(403).json({ message: 'Invalid or expired token' });
   }
 };
@@ -77,7 +80,10 @@ export const verifyFirebaseToken = async (
 
     next();
   } catch (error) {
-    console.error('Token verification error:', error);
+    console.error('Token verification error:', {
+      message: error instanceof Error ? error.message : String(error),
+      code: (error as any)?.code,
+    });
     return res.status(403).json({ message: 'Invalid or expired token' });
   }
 };

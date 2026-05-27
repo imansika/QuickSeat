@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
-import { LandingPage, SignUp, SignIn, OperatorDashboard, UpdateAvailability } from './components'
+import { LandingPage, SignUp, SignIn, OperatorDashboard, RegisterOperator } from './components'
 import { PassengerDashboard } from './components/PassengerDashboard/PassengerDashboard'
 import { SeatSelection } from './components/SeatSelection/SeatSelection'
 import { Payment } from './components/Payment'
@@ -92,6 +92,23 @@ function AppRoutes() {
             <Navigate to="/signin" replace />
           )
         } 
+      />
+
+      <Route
+        path="/operator/register-operator"
+        element={
+          currentUser && userProfile?.role === 'operator' ? (
+            <OperatorDashboard
+              onLogout={handleOperatorLogout}
+              onUpdateBus={handleUpdateBus}
+              initialView="register-operator"
+            />
+          ) : currentUser ? (
+            <Navigate to="/dashboard" replace />
+          ) : (
+            <Navigate to="/signin" replace />
+          )
+        }
       />
       
       {/* Passenger Dashboard - Protected Route */}
@@ -196,19 +213,6 @@ function AppRoutes() {
         } 
       />
 
-      {/* Update Availability - Protected Route for Operators */}
-      <Route 
-        path="/update-availability" 
-        element={
-          currentUser && userProfile?.role === 'operator' ? (
-            <UpdateAvailability />
-          ) : currentUser ? (
-            <Navigate to="/dashboard" replace />
-          ) : (
-            <Navigate to="/signin" replace />
-          )
-        } 
-      />
       
       {/* Redirect authenticated users from landing to appropriate dashboard */}
       {currentUser && userProfile && (
