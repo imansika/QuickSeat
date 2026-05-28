@@ -15,6 +15,7 @@ export const registerBus = async (busData: {
   origin: string;
   destination: string;
   seatCapacity: string;
+  layoutType: string;
   departureTime: string;
   operatingDays: string;
   ratePerKm: string;
@@ -49,6 +50,36 @@ export const getOperatorBuses = async () => {
     return response.data;
   } catch (error: any) {
     throw error.response?.data || { message: 'Failed to fetch buses' };
+  }
+};
+
+// Get buses operating on weekdays (daily + weekdays)
+export const getWeekdayOperatingBuses = async () => {
+  try {
+    const token = await getAuthToken();
+    const response = await axios.get(`${API_URL}/buses/operating/weekday`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: 'Failed to fetch weekday operating buses' };
+  }
+};
+
+// Get buses operating on weekends (daily + weekends)
+export const getWeekendOperatingBuses = async () => {
+  try {
+    const token = await getAuthToken();
+    const response = await axios.get(`${API_URL}/buses/operating/weekend`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: 'Failed to fetch weekend operating buses' };
   }
 };
 
@@ -107,6 +138,7 @@ export const searchBuses = async (params: {
   origin?: string;
   destination?: string;
   date?: string;
+  time?: string;
 }) => {
   try {
     const response = await axios.get(`${API_URL}/buses/search`, {
@@ -115,5 +147,22 @@ export const searchBuses = async (params: {
     return response.data;
   } catch (error: any) {
     throw error.response?.data || { message: 'Failed to search buses' };
+  }
+};
+
+// Search available buses with operating days and availability
+export const searchAvailableBuses = async (params: {
+  origin?: string;
+  destination?: string;
+  date?: string;
+  time?: string;
+}) => {
+  try {
+    const response = await axios.get(`${API_URL}/buses/search/available`, {
+      params,
+    });
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: 'Failed to search available buses' };
   }
 };

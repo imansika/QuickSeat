@@ -25,7 +25,7 @@ import {
   DirectionsRenderer,
   useJsApiLoader,
 } from "@react-google-maps/api";
-import { searchBuses } from "../../services/bus.service";
+import { searchAvailableBuses } from "../../services/bus.service";
 import type { Bus } from "../../types/bus";
 import { SeatSelectionModal } from "../SeatSelection/SeatSelectionModal";
 
@@ -44,10 +44,9 @@ interface PassengerDashboardProps {
 }
 
 export function PassengerDashboard({
-  onSearch,
   onLogout,
   onViewProfile,
-  onViewBookings,
+
 }: PassengerDashboardProps) {
   const navigate = useNavigate();
   const { currentUser, userProfile } = useAuth();
@@ -83,10 +82,11 @@ export function PassengerDashboard({
     if (searchData.origin && searchData.destination) {
       setIsSearching(true);
       try {
-        const response = await searchBuses({
+        const response = await searchAvailableBuses({
           origin: searchData.origin,
           destination: searchData.destination,
           date: searchData.date,
+          time: searchData.time,
         });
         setAvailableBuses(response.data || []);
         setHasSearched(true);

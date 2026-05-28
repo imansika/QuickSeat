@@ -13,6 +13,7 @@ export interface IBus extends Document {
   destination: string;
   stops: IBusStop[]; 
   seatCapacity: number;
+  layoutType: '2x2' | '1x2' | '2x1' | '1x3' | '3x1';
   departureTime: string;
   operatingDays: 'daily' | 'weekdays' | 'weekends';
   ratePerKm: number;
@@ -66,6 +67,12 @@ const BusSchema = new Schema<IBus>(
       type: Number,
       required: true,
       min: 1,
+    },
+    layoutType: {
+      type: String,
+      enum: ['2x2', '1x2', '2x1', '1x3', '3x1'],
+      required: true,
+      default: '2x2',
     },
     departureTime: {
       type: String,

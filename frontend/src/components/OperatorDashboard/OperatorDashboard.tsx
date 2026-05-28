@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Bus, Plus, UserPlus, Edit3, Calendar, TrendingUp, History, LogOut, BarChart3, Users, Clock, MapPin, X, Hash, Save, ChevronDown, User, Settings, Trash2, CheckCircle, XCircle, AlertCircle, Loader } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { registerBus, getOperatorBuses, deleteBus } from '../../services/bus.service';
+import { registerBus, getOperatorBuses, deleteBus, getWeekdayOperatingBuses, getWeekendOperatingBuses } from '../../services/bus.service';
 import { getAvailabilityByDate, setAvailability as updateAvailability } from '../../services/availability.service';
 import { useAuth } from '../../contexts/AuthContext';
 import { RegisterOperator } from '../RegisterOperator';
@@ -29,6 +29,7 @@ export function OperatorDashboard({
   // Availability states
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedBus, setSelectedBus] = useState('');
+  const [availabilityBuses, setAvailabilityBuses] = useState<any[]>([]);
   const [availability, setAvailability] = useState<any[]>([]);
   const [isLoadingAvailability, setIsLoadingAvailability] = useState(false);
   const [isSavingAvailability, setIsSavingAvailability] = useState(false);
@@ -41,6 +42,7 @@ export function OperatorDashboard({
     origin: '',
     destination: '',
     seatCapacity: '',
+    layoutType: '2x2',
     departureTime: '',
     operatingDays: 'daily',
     ratePerKm: '',
@@ -111,14 +113,55 @@ export function OperatorDashboard({
     }
   };
 
-  const fetchAvailabilityForDate = async (date: string) => {
+  const isWeekendDate = (dateString: string) => {
+    const date = new Date(`${dateString}T00:00:00`);
+    const day = date.getDay();
+    return day === 0 || day === 6;
+  };
+
+  const filterOperatingBuses = (buses: any[], weekend: boolean) => {
+    const targetDay = weekend ? 'weekends' : 'weekdays';
+    return buses.filter((bus: any) => bus.operatingDays === 'daily' || bus.operatingDays === targetDay);
+  };
+
+  const fetchAvailabilityBuses = async (date: string) => {
     try {
       setIsLoadingAvailability(true);
       setAvailabilityError('');
+
+      const weekend = isWeekendDate(date);
+      let buses: any[] = [];
+
+      try {
+        const response = weekend
+          ? await getWeekendOperatingBuses()
+          : await getWeekdayOperatingBuses();
+
+        buses = response.data || [];
+      } catch (error) {
+        const fallbackResponse = await getOperatorBuses();
+        buses = filterOperatingBuses(fallbackResponse.data || [], weekend);
+      }
+
+      setAvailabilityBuses(buses);
+
+      if (selectedBus && !buses.some((bus: any) => bus.busNumber === selectedBus)) {
+        setSelectedBus('');
+      }
+
+      return buses;
+    } catch (error: any) {
+      setAvailabilityError(error.message || 'Failed to fetch availability buses');
+      return [];
+    }
+  };
+
+  const fetchAvailabilityForDate = async (date: string, buses: any[]) => {
+    try {
       const response = await getAvailabilityByDate(date);
       const availabilityRecords = response.data || [];
 
-      const mapped = registeredBuses.map((bus: any) => {
+      const mapped = buses.map((bus: any) => {
         const availabilityRecord = availabilityRecords.find(
           (record: any) => (record.busNumber || '').toUpperCase() === (bus.busNumber || '').toUpperCase()
         );
@@ -135,24 +178,31 @@ export function OperatorDashboard({
       setAvailability(mapped);
     } catch (error: any) {
       setAvailabilityError(error.message || 'Failed to fetch availability');
-    } finally {
-      setIsLoadingAvailability(false);
     }
   };
 
   useEffect(() => {
     if (!selectedDate) {
+      setAvailabilityBuses([]);
       setAvailability([]);
+      setIsLoadingAvailability(false);
       return;
     }
 
-    if (registeredBuses.length === 0) {
-      setAvailability([]);
-      return;
-    }
+    const loadAvailability = async () => {
+      const buses = await fetchAvailabilityBuses(selectedDate);
+      if (buses.length === 0) {
+        setAvailability([]);
+        setIsLoadingAvailability(false);
+        return;
+      }
 
-    fetchAvailabilityForDate(selectedDate);
-  }, [selectedDate, registeredBuses]);
+      await fetchAvailabilityForDate(selectedDate, buses);
+      setIsLoadingAvailability(false);
+    };
+
+    loadAvailability();
+  }, [selectedDate]);
 
   const sriLankanCities = [
     'Colombo', 'Kandy', 'Galle', 'Jaffna', 'Negombo', 
@@ -170,6 +220,7 @@ export function OperatorDashboard({
     if (!formData.seatCapacity || parseInt(formData.seatCapacity) < 1) {
       newErrors.seatCapacity = 'Valid seat capacity is required';
     }
+    if (!formData.layoutType) newErrors.layoutType = 'Layout type is required';
     if (!formData.departureTime) newErrors.departureTime = 'Departure time is required';
     if (!formData.ratePerKm || parseFloat(formData.ratePerKm) < 1) {
       newErrors.ratePerKm = 'Valid rate per km is required';
@@ -194,6 +245,7 @@ export function OperatorDashboard({
           origin: '',
           destination: '',
           seatCapacity: '',
+          layoutType: '2x2',
           departureTime: '',
           operatingDays: 'daily',
           ratePerKm: '',
@@ -603,7 +655,7 @@ export function OperatorDashboard({
                         className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#264b8d] focus:border-transparent transition-all bg-white"
                       >
                         <option value="">All Buses</option>
-                        {registeredBuses.map((bus: any) => (
+                        {availabilityBuses.map((bus: any) => (
                           <option key={bus._id ?? bus.id ?? bus.busNumber} value={bus.busNumber}>
                             {bus.busNumber}
                           </option>
@@ -897,6 +949,31 @@ export function OperatorDashboard({
                     />
                     {errors.seatCapacity && (
                       <p className="text-red-600 text-sm mt-1">{errors.seatCapacity}</p>
+                    )}
+                  </div>
+
+                  {/* Layout Type */}
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
+                      Layout Type
+                    </label>
+                    <select
+                      value={formData.layoutType}
+                      onChange={(e) => setFormData({ ...formData, layoutType: e.target.value })}
+                      className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#264b8d] focus:border-transparent transition-all bg-white ${
+                        errors.layoutType ? 'border-red-300 bg-red-50' : 'border-slate-200'
+                      }`}
+                    >
+                      <option value="2x2">2x2</option>
+                      <option value="1x3">1x3</option>
+                      <option value="1x2">1x2</option>
+                      <option value="3x1">3x1</option>
+                      <option value="1x2">1x2</option>
+                      <option value="3x1">3x1</option>
+
+                    </select>
+                    {errors.layoutType && (
+                      <p className="text-red-600 text-sm mt-1">{errors.layoutType}</p>
                     )}
                   </div>
                 </div>

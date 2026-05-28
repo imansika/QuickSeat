@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, User, Wifi, Snowflake } from 'lucide-react';
 import type { Bus } from '../../types/bus';
+import { createBooking } from '../../services/booking.service';
 
 type SeatStatus = 'available' | 'selected' | 'booked';
 
@@ -9,6 +10,9 @@ interface Seat {
   number: string;
   status: SeatStatus;
   type: 'window' | 'aisle' | 'middle';
+  position: 'left' | 'right' | 'center';
+  rowIndex: number;
+  seatIndex: number;
 }
 
 interface SeatSelectionModalProps {
@@ -30,36 +34,101 @@ export function SeatSelectionModal({
 }: SeatSelectionModalProps) {
   const navigate = useNavigate();
   
-  // Create seat layout (10 rows x 4 seats per row)
-  const createSeats = (): Seat[] => {
+  const getLayoutConfig = (layoutType: Bus['layoutType']) => {
+    switch (layoutType) {
+      case '1x2':
+        return { leftCount: 1, rightCount: 2, hasAisle: true };
+      case '1x3':
+        return { leftCount: 1, rightCount: 3, hasAisle: false };
+      case '3x1':
+        return { leftCount: 3, rightCount: 1, hasAisle: false };
+      case '2x1':
+        return { leftCount: 2, rightCount: 1, hasAisle: true };
+      case '2x2':
+      default:
+        return { leftCount: 2, rightCount: 2, hasAisle: true };
+    }
+  };
+
+  const buildRowSizes = (capacity: number, totalPerRow: number, extraLastRowSeat: boolean) => {
+    const sizes: number[] = [];
+    const maxLastRow = extraLastRowSeat ? totalPerRow + 1 : totalPerRow;
+    let remaining = capacity;
+
+    while (remaining > 0) {
+      if (remaining <= maxLastRow) {
+        sizes.push(remaining);
+        break;
+      }
+
+      sizes.push(totalPerRow);
+      remaining -= totalPerRow;
+    }
+
+    return sizes;
+  };
+
+  const createSeats = () => {
     const seats: Seat[] = [];
     const bookedSeats = ['A3', 'A4', 'B2', 'C1', 'D3', 'E2', 'F4', 'G1']; // Mock booked seats
-    
-    for (let row = 1; row <= 10; row++) {
-      const rowLabel = String.fromCharCode(64 + row); // A, B, C, etc.
-      
-      for (let col = 1; col <= 4; col++) {
-        const seatNumber = `${rowLabel}${col}`;
+    const { leftCount, rightCount, hasAisle } = getLayoutConfig(bus.layoutType);
+    const totalPerRow = leftCount + rightCount;
+    const extraLastRowSeat = hasAisle && ['2x2', '1x2', '2x1'].includes(bus.layoutType);
+    const rowSizes = buildRowSizes(bus.seatCapacity, totalPerRow, extraLastRowSeat);
+
+    rowSizes.forEach((rowSize, rowIndex) => {
+      const rowLabel = String.fromCharCode(65 + rowIndex);
+      const hasCenterSeat = hasAisle && rowSize === totalPerRow + 1;
+
+      for (let slotIndex = 0; slotIndex < rowSize; slotIndex += 1) {
+        const seatNumber = `${rowLabel}${slotIndex + 1}`;
         const isBooked = bookedSeats.includes(seatNumber);
-        
+        const isCenterSeat = hasCenterSeat && slotIndex === leftCount;
+
+        let position: 'left' | 'right' | 'center' = 'left';
+        if (isCenterSeat) position = 'center';
+        else if (slotIndex >= leftCount + (hasCenterSeat ? 1 : 0)) position = 'right';
+
+        let seatIndex = 1;
+        if (position === 'left') seatIndex = slotIndex + 1;
+        else if (position === 'right') seatIndex = slotIndex - leftCount - (hasCenterSeat ? 1 : 0) + 1;
+
         let type: 'window' | 'aisle' | 'middle';
-        if (col === 1 || col === 4) type = 'window';
-        else if (col === 2) type = 'aisle';
-        else type = 'middle';
-        
+        if (position === 'center') {
+          type = 'aisle';
+        } else if (position === 'left') {
+          if (seatIndex === 1) type = 'window';
+          else if (seatIndex === leftCount) type = 'aisle';
+          else type = 'middle';
+        } else {
+          if (seatIndex === rightCount) type = 'window';
+          else if (seatIndex === 1) type = 'aisle';
+          else type = 'middle';
+        }
+
         seats.push({
           number: seatNumber,
           status: isBooked ? 'booked' : 'available',
           type,
+          position,
+          rowIndex,
+          seatIndex,
         });
       }
-    }
-    
+    });
+
     return seats;
   };
 
   const [seats, setSeats] = useState<Seat[]>(createSeats());
   const [selectedSeat, setSelectedSeat] = useState<string | null>(null);
+  const [isBooking, setIsBooking] = useState(false);
+  const [bookingError, setBookingError] = useState('');
+
+  useEffect(() => {
+    setSeats(createSeats());
+    setSelectedSeat(null);
+  }, [bus._id, bus.seatCapacity, bus.layoutType, isOpen]);
 
   const handleSeatClick = (seatNumber: string) => {
     const seat = seats.find(s => s.number === seatNumber);
@@ -73,9 +142,24 @@ export function SeatSelectionModal({
     setSelectedSeat(seatNumber);
   };
 
-  const handleContinue = () => {
-    if (selectedSeat) {
-      // Navigate to payment page with booking data
+  const handleContinue = async () => {
+    if (!selectedSeat) return;
+    if (!searchData?.date) {
+      setBookingError('Please select a journey date before booking');
+      return;
+    }
+
+    try {
+      setIsBooking(true);
+      setBookingError('');
+
+      const response = await createBooking({
+        busNumber: bus.busNumber,
+        seats: [selectedSeat],
+        journeyDate: searchData.date,
+        totalAmount: price + 50,
+      });
+
       navigate('/payment', {
         state: {
           bookingData: {
@@ -84,10 +168,15 @@ export function SeatSelectionModal({
             price,
             duration,
             selectedSeat,
+            booking: response.data,
           }
         }
       });
       onClose();
+    } catch (error: any) {
+      setBookingError(error.message || 'Failed to create booking');
+    } finally {
+      setIsBooking(false);
     }
   };
 
@@ -102,11 +191,43 @@ export function SeatSelectionModal({
     }
   };
 
-  // Group seats by row
-  const rows = [];
-  for (let i = 0; i < seats.length; i += 4) {
-    rows.push(seats.slice(i, i + 4));
-  }
+  const rows = useMemo(() => {
+    const { leftCount, rightCount, hasAisle } = getLayoutConfig(bus.layoutType);
+    const totalPerRow = leftCount + rightCount;
+    const extraLastRowSeat = hasAisle && ['2x2', '1x2', '2x1'].includes(bus.layoutType);
+    const rowSizes = buildRowSizes(bus.seatCapacity, totalPerRow, extraLastRowSeat);
+    const rowCount = rowSizes.length;
+    const mapped = Array.from({ length: rowCount }, (_, rowIndex) => ({
+      label: String.fromCharCode(65 + rowIndex),
+      left: Array.from({ length: leftCount }, () => null as Seat | null),
+      right: Array.from({ length: rightCount }, () => null as Seat | null),
+      center: null as Seat | null,
+      hasAisle,
+    }));
+
+    seats.forEach((seat) => {
+      const rowIndex = seat.rowIndex;
+      const seatIndex = seat.seatIndex;
+
+      if (Number.isNaN(seatIndex) || rowIndex < 0 || rowIndex >= mapped.length) {
+        return;
+      }
+
+      if (seat.position === 'center') {
+        mapped[rowIndex].center = seat;
+      } else if (seat.position === 'left') {
+        if (seatIndex >= 1 && seatIndex <= leftCount) {
+          mapped[rowIndex].left[seatIndex - 1] = seat;
+        }
+      } else {
+        if (seatIndex >= 1 && seatIndex <= rightCount) {
+          mapped[rowIndex].right[seatIndex - 1] = seat;
+        }
+      }
+    });
+
+    return mapped;
+  }, [bus.layoutType, bus.seatCapacity, seats]);
 
   if (!isOpen) return null;
 
@@ -163,19 +284,15 @@ export function SeatSelectionModal({
 
                 {/* Driver Section - Single Unit */}
                 <div className="flex items-center gap-3 mb-6">
-                  {/* Row Label Space */}
                   <div className="w-8"></div>
-                  
-                  {/* Left Seats Space */}
                   <div className="flex gap-2">
-                    <div className="w-14 h-14"></div>
-                    <div className="w-14 h-14"></div>
+                    {rows[0]?.left.map((_, index) => (
+                      <div key={`driver-left-${index}`} className="w-14 h-14"></div>
+                    ))}
                   </div>
 
-                  {/* Aisle */}
-                  <div className="w-12"></div>
+                  {rows[0]?.hasAisle && <div className="w-12"></div>}
 
-                  {/* Driver Section - Combined as ONE unit */}
                   <div className="flex items-center gap-2 px-6 py-3 bg-slate-300 border-2 border-slate-400 rounded-lg">
                     <User className="w-6 h-6 text-slate-700" />
                     <span className="text-slate-700 font-semibold">Driver</span>
@@ -184,49 +301,73 @@ export function SeatSelectionModal({
 
                 {/* Seats Layout */}
                 <div className="space-y-3">
-                  {rows.map((row, rowIndex) => (
-                    <div key={rowIndex} className="flex items-center gap-3">
-                      {/* Row Label */}
+                  {rows.map((row) => (
+                    <div key={row.label} className={`flex items-center ${row.hasAisle ? 'gap-3' : 'gap-1'}`}>
                       <div className="w-8 text-center font-bold text-[#264b8d]">
-                        {String.fromCharCode(65 + rowIndex)}
+                        {row.label}
                       </div>
 
-                      {/* Left Seats */}
                       <div className="flex gap-2">
-                        {row.slice(0, 2).map((seat) => (
-                          <button
-                            key={seat.number}
-                            onClick={() => handleSeatClick(seat.number)}
-                            disabled={seat.status === 'booked'}
-                            className={`w-14 h-14 rounded-lg border-2 font-bold text-sm transition-all duration-200 ${getSeatColor(
-                              seat.status
-                            )}`}
-                            title={seat.number}
-                          >
-                            {seat.number.slice(-1)}
-                          </button>
+                        {row.left.map((seat, index) => (
+                          seat ? (
+                            <button
+                              key={seat.number}
+                              onClick={() => handleSeatClick(seat.number)}
+                              disabled={seat.status === 'booked'}
+                              className={`w-14 h-14 rounded-lg border-2 font-bold text-sm transition-all duration-200 ${getSeatColor(
+                                seat.status
+                              )}`}
+                              title={seat.number}
+                            >
+                              {seat.number.slice(-1)}
+                            </button>
+                          ) : (
+                            <div key={`left-empty-${row.label}-${index}`} className="w-14 h-14"></div>
+                          )
                         ))}
                       </div>
 
-                      {/* Aisle */}
-                      <div className="w-12 text-center">
-                        <div className="border-l-2 border-dashed border-slate-300 h-8 mx-auto"></div>
-                      </div>
+                      {row.hasAisle && (
+                        <div className="w-12 text-center">
+                          {row.center ? (() => {
+                            const centerSeat = row.center;
+                            if (!centerSeat) return null;
+                            return (
+                              <button
+                                key={centerSeat.number}
+                                onClick={() => handleSeatClick(centerSeat.number)}
+                                disabled={centerSeat.status === 'booked'}
+                                className={`w-14 h-14 rounded-lg border-2 font-bold text-sm transition-all duration-200 ${getSeatColor(
+                                  centerSeat.status
+                                )}`}
+                                title={centerSeat.number}
+                              >
+                                {centerSeat.number.slice(-1)}
+                              </button>
+                            );
+                          })() : (
+                            <div className="border-l-2 border-dashed border-slate-300 h-8 mx-auto"></div>
+                          )}
+                        </div>
+                      )}
 
-                      {/* Right Seats */}
                       <div className="flex gap-2">
-                        {row.slice(2, 4).map((seat) => (
-                          <button
-                            key={seat.number}
-                            onClick={() => handleSeatClick(seat.number)}
-                            disabled={seat.status === 'booked'}
-                            className={`w-14 h-14 rounded-lg border-2 font-bold text-sm transition-all duration-200 ${getSeatColor(
-                              seat.status
-                            )}`}
-                            title={seat.number}
-                          >
-                            {seat.number.slice(-1)}
-                          </button>
+                        {row.right.map((seat, index) => (
+                          seat ? (
+                            <button
+                              key={seat.number}
+                              onClick={() => handleSeatClick(seat.number)}
+                              disabled={seat.status === 'booked'}
+                              className={`w-14 h-14 rounded-lg border-2 font-bold text-sm transition-all duration-200 ${getSeatColor(
+                                seat.status
+                              )}`}
+                              title={seat.number}
+                            >
+                              {seat.number.slice(-1)}
+                            </button>
+                          ) : (
+                            <div key={`right-empty-${row.label}-${index}`} className="w-14 h-14"></div>
+                          )
                         ))}
                       </div>
                     </div>
@@ -301,19 +442,25 @@ export function SeatSelectionModal({
 
                 <button
                   onClick={handleContinue}
-                  disabled={!selectedSeat}
+                  disabled={!selectedSeat || isBooking}
                   className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${
-                    selectedSeat
+                    selectedSeat && !isBooking
                       ? 'bg-gradient-to-r from-[#264b8d] to-[#1e3a6d] text-white hover:shadow-xl transform hover:scale-[1.02]'
                       : 'bg-slate-300 text-slate-500 cursor-not-allowed'
                   }`}
                 >
-                  Continue to Payment
+                  {isBooking ? 'Saving Booking...' : 'Continue to Payment'}
                 </button>
 
-                {!selectedSeat && (
+                {!selectedSeat && !bookingError && (
                   <p className="text-sm text-center text-slate-500 mt-3">
                     Please select a seat to continue
+                  </p>
+                )}
+
+                {bookingError && (
+                  <p className="text-sm text-center text-red-600 mt-3">
+                    {bookingError}
                   </p>
                 )}
               </div>

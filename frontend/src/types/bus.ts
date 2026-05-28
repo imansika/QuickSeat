@@ -13,6 +13,7 @@ export interface Bus {
   destination: string;
   stops: BusStop[];
   seatCapacity: number;
+  layoutType: '2x2' | '1x2' | '2x1' | '1x3' | '3x1';
   departureTime: string;
   arrivalTime: string;
   operatingDays: 'daily' | 'weekdays' | 'weekends';
