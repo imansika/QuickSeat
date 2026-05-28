@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
-import { LandingPage, SignUp, SignIn, OperatorDashboard, RegisterOperator, PaymentFailed } from './components'
+import { LandingPage, SignUp, SignIn, OperatorDashboard, PaymentFailed } from './components'
 import { PassengerDashboard } from './components/PassengerDashboard/PassengerDashboard'
 import { SeatSelection } from './components/SeatSelection/SeatSelection'
 import { BookingConfirmation } from './components/BookingConfirmation'
@@ -50,7 +50,7 @@ function AppRoutes() {
     navigate('/');
   };
 
-  const handleUpdateBus = (busData?: any) => {
+  const handleUpdateBus = (busData?: unknown) => {
     console.log('Update Bus:', busData);
     // TODO: Implement bus update view
   };
@@ -70,11 +70,11 @@ function AppRoutes() {
   return (
     <Routes>
       {/* Landing Page */}
-      <Route path="/" element={<LandingPage onSignIn={() => navigate('/signin')} onSignUp={() => navigate('/signup')} onOperatorLogin={() => navigate('/signin')} />} />
+      <Route path="/" element={<LandingPage onSignIn={() => navigate('/signin')} onSignUp={() => navigate('/signup')} />} />
       
       {/* Auth Routes */}
       <Route path="/signin" element={<SignIn onSignUp={() => navigate('/signup')} />} />
-      <Route path="/signup" element={<SignUp onSignIn={() => navigate('/signin')} />} />
+      <Route path="/signup" element={<SignUp />} />
       
       {/* Operator Dashboard - Protected Route for Operators */}
       <Route 

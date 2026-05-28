@@ -25,10 +25,10 @@ class AuthService {
       });
 
       return userCredential.user;
-    } catch (error: any) {
+    } catch (error: unknown) {
       const authError = error as { code?: string; message?: string };
-      const enhancedError = new Error(authError.message || 'Failed to create account');
-      (enhancedError as Error & { code?: string }).code = authError.code;
+      const enhancedError = new Error(authError?.message || 'Failed to create account');
+      (enhancedError as Error & { code?: string }).code = authError?.code;
       throw enhancedError;
     }
   }
@@ -38,10 +38,10 @@ class AuthService {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       return userCredential.user;
-    } catch (error: any) {
+    } catch (error: unknown) {
       const authError = error as { code?: string; message?: string };
-      const enhancedError = new Error(authError.message || 'Failed to sign in');
-      (enhancedError as Error & { code?: string }).code = authError.code;
+      const enhancedError = new Error(authError?.message || 'Failed to sign in');
+      (enhancedError as Error & { code?: string }).code = authError?.code;
       throw enhancedError;
     }
   }
@@ -51,8 +51,9 @@ class AuthService {
   async signOut(): Promise<void> {
     try {
       await signOut(auth);
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to sign out');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(message || 'Failed to sign out');
     }
   }
 
@@ -68,8 +69,9 @@ class AuthService {
         displayName,
         ...(photoURL && { photoURL }),
       });
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to update profile');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(message || 'Failed to update profile');
     }
   }
 
@@ -81,8 +83,9 @@ class AuthService {
       }
 
       await updateEmail(auth.currentUser, newEmail);
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to update email');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(message || 'Failed to update email');
     }
   }
 
@@ -94,8 +97,9 @@ class AuthService {
       }
 
       await updatePassword(auth.currentUser, newPassword);
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to update password');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(message || 'Failed to update password');
     }
   }
 
@@ -111,8 +115,9 @@ class AuthService {
       }
 
       await auth.currentUser.delete();
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to delete current user');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(message || 'Failed to delete current user');
     }
   }
 
@@ -123,8 +128,9 @@ class AuthService {
         return null;
       }
       return await auth.currentUser.getIdToken(forceRefresh);
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to get ID token');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(message || 'Failed to get ID token');
     }
   }
 }

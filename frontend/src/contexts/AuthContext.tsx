@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
 import { auth } from '../firebase';
@@ -49,8 +50,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       const profile = await userService.getUserProfile(uid);
       setUserProfile(profile);
-    } catch (err: any) {
-      console.error('Failed to load user profile:', err.message);
+    } catch (err: unknown) {
+      console.error('Failed to load user profile:', err instanceof Error ? err.message : String(err));
       // Profile might not exist yet, which is okay
     }
   };
@@ -92,8 +93,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       });
       
       setUserProfile(profile);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg);
       throw err;
     } finally {
       setLoading(false);
@@ -117,8 +119,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (profile && currentUser) {
         await loadUserProfile(currentUser.uid);
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg);
       throw err;
     } finally {
       setLoading(false);
@@ -131,8 +134,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setError(null);
       setLoading(true);
       await authService.signIn(email, password);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg);
       throw err;
     } finally {
       setLoading(false);
@@ -147,8 +151,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setError(null);
       await authService.signOut();
       setUserProfile(null);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg);
       throw err;
     }
   };
@@ -177,8 +182,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       );
       
       setUserProfile(updatedProfile);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg);
       throw err;
     } finally {
       setLoading(false);
@@ -191,8 +197,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setError(null);
       setLoading(true);
       await authService.updateUserEmail(newEmail);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg);
       throw err;
     } finally {
       setLoading(false);
@@ -205,8 +212,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setError(null);
       setLoading(true);
       await authService.updateUserPassword(newPassword);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg);
       throw err;
     } finally {
       setLoading(false);
@@ -230,8 +238,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       await currentUser.delete();
       
       setUserProfile(null);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg);
       throw err;
     } finally {
       setLoading(false);

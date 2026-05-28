@@ -145,7 +145,7 @@ export const getBookedSeatsByBusAndDate = async (req: AuthRequest, res: Response
     const bookings = await Booking.find({
       busNumber: String(busNumber).toUpperCase(),
       journeyDate: { $gte: journeyDate, $lt: nextDay },
-      status: { $in: ['pending', 'confirmed'] },
+      status: 'confirmed',
     }).select('seats');
 
     const bookedSeats = bookings.flatMap((booking) => booking.seats);

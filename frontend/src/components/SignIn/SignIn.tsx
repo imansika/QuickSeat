@@ -29,8 +29,9 @@ export function SignIn({ onSignUp }: SignInProps) {
         const dashboardRoute = userProfile?.role === 'operator' ? '/operator' : '/dashboard';
         navigate(dashboardRoute);
       }, 500);
-    } catch (err: any) {
-      setLocalError(err.message || 'Failed to sign in');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setLocalError(msg || 'Failed to sign in');
     } finally {
       setLoading(false);
     }
@@ -46,8 +47,9 @@ export function SignIn({ onSignUp }: SignInProps) {
         const dashboardRoute = userProfile?.role === 'operator' ? '/operator' : '/dashboard';
         navigate(dashboardRoute);
       }, 500);
-    } catch (err: any) {
-      setLocalError(err.message || 'Failed to sign in with Google');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setLocalError(msg || 'Failed to sign in with Google');
     } finally {
       setLoading(false);
     }
@@ -63,8 +65,9 @@ export function SignIn({ onSignUp }: SignInProps) {
         const dashboardRoute = userProfile?.role === 'operator' ? '/operator' : '/dashboard';
         navigate(dashboardRoute);
       }, 500);
-    } catch (err: any) {
-      setLocalError(err.message || 'Failed to sign in with Facebook');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setLocalError(msg || 'Failed to sign in with Facebook');
     } finally {
       setLoading(false);
     }

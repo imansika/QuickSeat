@@ -42,8 +42,9 @@ class UserService {
       const result = await response.json();
       console.log('User profile created successfully:', result);
       return result.user;
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to create user profile');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(message || 'Failed to create user profile');
     }
   }
 
@@ -64,8 +65,9 @@ class UserService {
 
       const result = await response.json();
       return result.user;
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to create operator account');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(message || 'Failed to create operator account');
     }
   }
 
@@ -84,8 +86,9 @@ class UserService {
       }
 
       return await response.json();
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to fetch user profile');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(message || 'Failed to fetch user profile');
     }
   }
 
@@ -105,8 +108,9 @@ class UserService {
       }
 
       return await response.json();
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to update user profile');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(message || 'Failed to update user profile');
     }
   }
 
@@ -123,8 +127,9 @@ class UserService {
         const error = await response.json();
         throw new Error(error.message || 'Failed to delete user profile');
       }
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to delete user profile');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(message || 'Failed to delete user profile');
     }
   }
 
@@ -143,8 +148,9 @@ class UserService {
       }
 
       return await response.json();
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to fetch users');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(message || 'Failed to fetch users');
     }
   }
 
@@ -163,8 +169,9 @@ class UserService {
       }
 
       return await response.json();
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to request operator role');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(message || 'Failed to request operator role');
     }
   }
 }

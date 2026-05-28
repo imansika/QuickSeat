@@ -52,8 +52,9 @@ export function RegisterOperator() {
 
       alert(`Operator account created for ${formData.fullName}.`);
       navigate('/operator');
-    } catch (err: any) {
-      setError(err.message || 'Failed to create operator account.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg || 'Failed to create operator account.');
     } finally {
       setLoading(false);
     }

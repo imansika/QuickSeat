@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Bus, MapPin, Calendar, Clock, Download, LogOut, Ticket as TicketIcon, Navigation, User, ChevronDown, Settings } from 'lucide-react';
+import { Bus, MapPin, Calendar, Clock, LogOut, Ticket as TicketIcon, Navigation, User, ChevronDown, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -90,10 +90,6 @@ export function MyBookings() {
 
   const upcomingBookings = bookings.filter(b => b.status === 'upcoming');
   const pastBookings = bookings.filter(b => b.status === 'completed');
-
-  const handleDownloadTicket = (bookingId: string) => {
-    alert(`Downloading ticket for booking ${bookingId}`);
-  };
 
   const handleTrackBus = (booking: Booking) => {
     alert(`Opening live tracking for ${booking.busNumber}\nRoute: ${booking.origin} → ${booking.destination}\nDeparture: ${booking.departureTime}`);

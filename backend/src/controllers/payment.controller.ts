@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { AuthRequest } from '../middleware/auth.middleware';
 import Payment from '../models/Payment.model';
 import Booking from '../models/Booking.model';
+import { issueTicketsForBooking } from '../services/ticket.service';
 
 const md5 = (value: string) => {
   return crypto.createHash('md5').update(value).digest('hex').toUpperCase();
@@ -80,6 +81,14 @@ const processPayhereStatus = async (payload: {
       { status: bookingStatus },
       { new: true }
     );
+  }
+
+  if (paymentStatus === 'paid') {
+    try {
+      await issueTicketsForBooking(order_id);
+    } catch (ticketError) {
+      console.error('Ticket issuance failed after successful payment:', ticketError);
+    }
   }
 
   return { paymentStatus, bookingStatus };
@@ -306,7 +315,9 @@ export const handlePayhereNotify = async (req: AuthRequest, res: Response) => {
 export const handlePayhereReturn = async (req: AuthRequest, res: Response) => {
   try {
     // Return handler is UX-only. Do not update DB state from browser redirects.
-    const redirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/booking-confirmation`;
+    const bookingId = String(req.query.order_id || req.query.bookingId || '');
+    const redirectBase = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/booking-confirmation`;
+    const redirectUrl = bookingId ? `${redirectBase}?bookingId=${encodeURIComponent(bookingId)}` : redirectBase;
     return res.redirect(redirectUrl);
   } catch (error: any) {
     console.error('Error handling PayHere return:', error);

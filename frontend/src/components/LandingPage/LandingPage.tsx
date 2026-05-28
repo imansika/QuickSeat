@@ -6,10 +6,9 @@ import { Footer } from '../Footer/Footer';
 interface LandingPageProps {
   onSignIn: () => void;
   onSignUp: () => void;
-  onOperatorLogin: () => void;
 }
 
-export function LandingPage({ onSignIn, onSignUp, onOperatorLogin }: LandingPageProps) {
+export function LandingPage({ onSignIn, onSignUp }: LandingPageProps) {
   const [hoveredFeature, setHoveredFeature] = useState<number | null>(null);
 
   const features = [

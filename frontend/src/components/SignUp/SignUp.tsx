@@ -3,11 +3,7 @@ import { Eye, EyeOff, Bus } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
-interface SignUpProps {
-  onSignIn: () => void;
-}
-
-export function SignUp({ onSignIn }: SignUpProps) {
+export function SignUp() {
   const navigate = useNavigate();
   const { signUp, signInWithGoogle, signInWithFacebook, userProfile, error, clearError } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
@@ -59,8 +55,9 @@ export function SignUp({ onSignIn }: SignUpProps) {
         const dashboardRoute = userProfile?.role === 'operator' ? '/operator' : '/dashboard';
         navigate(dashboardRoute);
       }, 500);
-    } catch (err: any) {
-      setLocalError(err.message || 'Failed to create account');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setLocalError(msg || 'Failed to create account');
     } finally {
       setLoading(false);
     }
@@ -76,8 +73,9 @@ export function SignUp({ onSignIn }: SignUpProps) {
         const dashboardRoute = userProfile?.role === 'operator' ? '/operator' : '/dashboard';
         navigate(dashboardRoute);
       }, 500);
-    } catch (err: any) {
-      setLocalError(err.message || 'Failed to sign in with Google');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setLocalError(msg || 'Failed to sign in with Google');
     } finally {
       setLoading(false);
     }
@@ -93,8 +91,9 @@ export function SignUp({ onSignIn }: SignUpProps) {
         const dashboardRoute = userProfile?.role === 'operator' ? '/operator' : '/dashboard';
         navigate(dashboardRoute);
       }, 500);
-    } catch (err: any) {
-      setLocalError(err.message || 'Failed to sign in with Facebook');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setLocalError(msg || 'Failed to sign in with Facebook');
     } finally {
       setLoading(false);
     }

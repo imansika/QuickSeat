@@ -27,7 +27,7 @@ import {
 } from "@react-google-maps/api";
 import { searchAvailableBuses } from "../../services/bus.service";
 import { getBookedSeats } from "../../services/booking.service";
-import type { Bus } from "../../types/bus";
+import type { Bus, BusStop } from "../../types/bus";
 import { SeatSelectionModal } from "../SeatSelection/SeatSelectionModal";
 
 export interface SearchData {
@@ -121,7 +121,7 @@ export function PassengerDashboard({
           counts[busNumber] = count;
         });
         setBookedSeatCounts(counts);
-      } catch (error) {
+      } catch {
         setBookedSeatCounts({});
       }
     };
@@ -150,7 +150,7 @@ export function PassengerDashboard({
       
       // Get waypoints from the bus stops stored in MongoDB
       const waypoints: google.maps.DirectionsWaypoint[] = busToDisplay.stops
-        ? busToDisplay.stops.map((stop: any) => ({
+        ? busToDisplay.stops.map((stop: BusStop) => ({
             location: stop.location + ", Sri Lanka",
             stopover: true,
           }))
@@ -235,7 +235,7 @@ export function PassengerDashboard({
     if (minsMatch) totalMinutes += parseInt(minsMatch[1]);
 
     // Calculate arrival time
-    let arrivalMinutes = depHour * 60 + depMin + totalMinutes;
+    const arrivalMinutes = depHour * 60 + depMin + totalMinutes;
     const arrivalHour = Math.floor(arrivalMinutes / 60) % 24;
     const arrivalMin = arrivalMinutes % 60;
 

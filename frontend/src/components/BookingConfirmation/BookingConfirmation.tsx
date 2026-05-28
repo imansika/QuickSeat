@@ -2,22 +2,38 @@ import { useState } from 'react';
 import { Bus as BusIcon, CheckCircle, Download, LogOut, User, ChevronDown, Settings } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { downloadBookingTickets } from '../../services/ticket.service';
 
 export function BookingConfirmation() {
   const navigate = useNavigate();
   const location = useLocation();
   const { userProfile, signOut } = useAuth();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   
   // Get booking data from navigation state
   const confirmationData = location.state?.confirmationData;
+  const bookingId = new URLSearchParams(location.search).get('bookingId') || confirmationData?.bookingId || '';
   
   const isFallback = !confirmationData;
 
   const userEmail = userProfile?.email || "passenger@example.com";
 
-  const handleDownload = () => {
-    alert('E-ticket downloaded successfully!');
+  const handleDownload = async () => {
+    if (!bookingId) {
+      alert('Booking ID is missing. Please open this page again after payment completion.');
+      return;
+    }
+
+    try {
+      setDownloading(true);
+      await downloadBookingTickets(bookingId);
+    } catch (error) {
+      console.error('Failed to download e-ticket:', error);
+      alert('Unable to download the e-ticket right now. Please try again.');
+    } finally {
+      setDownloading(false);
+    }
   };
 
   const handleNewBooking = () => {
@@ -156,18 +172,15 @@ export function BookingConfirmation() {
             </div>
           </div>
 
-          
-
-          
-
           {/* Action Buttons */}
           <div className="grid md:grid-cols-2 gap-4 mb-4">
             <button
               onClick={handleDownload}
+              disabled={downloading}
               className="flex items-center justify-center gap-3 px-6 py-4 bg-[#264b8d] text-white rounded-xl font-semibold text-lg hover:bg-[#1e3a6d] hover:shadow-xl transition-all"
             >
               <Download className="w-5 h-5" />
-              Download E-Ticket
+              {downloading ? 'Downloading...' : 'Download E-Ticket'}
             </button>
 
             <button

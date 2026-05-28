@@ -22,8 +22,11 @@ export const createBooking = async (bookingData: {
       },
     });
     return response.data;
-  } catch (error: any) {
-    throw error.response?.data || { message: 'Failed to create booking' };
+  } catch (error: unknown) {
+    const resp = (error as { response?: { data?: unknown } })?.response?.data;
+    if (resp) throw resp;
+    const message = error instanceof Error ? error.message : String(error);
+    throw { message: message || 'Failed to create booking' };
   }
 };
 
@@ -36,8 +39,11 @@ export const getMyBookings = async () => {
       },
     });
     return response.data;
-  } catch (error: any) {
-    throw error.response?.data || { message: 'Failed to fetch bookings' };
+  } catch (error: unknown) {
+    const resp = (error as { response?: { data?: unknown } })?.response?.data;
+    if (resp) throw resp;
+    const message = error instanceof Error ? error.message : String(error);
+    throw { message: message || 'Failed to fetch bookings' };
   }
 };
 
@@ -55,8 +61,11 @@ export const updateBookingStatus = async (id: string, status: 'pending' | 'confi
       }
     );
     return response.data;
-  } catch (error: any) {
-    throw error.response?.data || { message: 'Failed to update booking status' };
+  } catch (error: unknown) {
+    const resp = (error as { response?: { data?: unknown } })?.response?.data;
+    if (resp) throw resp;
+    const message = error instanceof Error ? error.message : String(error);
+    throw { message: message || 'Failed to update booking status' };
   }
 };
 
@@ -70,7 +79,10 @@ export const getBookedSeats = async (busNumber: string, date: string) => {
       },
     });
     return response.data;
-  } catch (error: any) {
-    throw error.response?.data || { message: 'Failed to fetch booked seats' };
+  } catch (error: unknown) {
+    const resp = (error as { response?: { data?: unknown } })?.response?.data;
+    if (resp) throw resp;
+    const message = error instanceof Error ? error.message : String(error);
+    throw { message: message || 'Failed to fetch booked seats' };
   }
 };

@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { X, User, Wifi, Snowflake } from 'lucide-react';
 import type { Bus } from '../../types/bus';
 import { createBooking, getBookedSeats } from '../../services/booking.service';
@@ -16,9 +15,16 @@ interface Seat {
   seatIndex: number;
 }
 
+interface SearchData {
+  date?: string;
+  fullName?: string;
+  origin?: string;
+  destination?: string;
+}
+
 interface SeatSelectionModalProps {
   bus: Bus;
-  searchData: any;
+  searchData: SearchData;
   price: number;
   duration: string;
   isOpen: boolean;
@@ -33,8 +39,6 @@ export function SeatSelectionModal({
   isOpen, 
   onClose 
 }: SeatSelectionModalProps) {
-  const navigate = useNavigate();
-  
   const getLayoutConfig = (layoutType: Bus['layoutType']) => {
     switch (layoutType) {
       case '1x2':
@@ -70,10 +74,9 @@ export function SeatSelectionModal({
   };
 
   const [bookedSeats, setBookedSeats] = useState<string[]>([]);
-  const [isLoadingSeats, setIsLoadingSeats] = useState(false);
   const [seatsError, setSeatsError] = useState('');
 
-  const createSeats = () => {
+  const createSeats = useCallback(() => {
     const seats: Seat[] = [];
     const bookedSeatSet = new Set(bookedSeats.map((seat) => seat.toUpperCase()));
     const { leftCount, rightCount, hasAisle } = getLayoutConfig(bus.layoutType);
@@ -123,7 +126,7 @@ export function SeatSelectionModal({
     });
 
     return seats;
-  };
+  }, [bus.layoutType, bus.seatCapacity, bookedSeats]);
 
   const [seats, setSeats] = useState<Seat[]>(createSeats());
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
@@ -133,7 +136,7 @@ export function SeatSelectionModal({
   useEffect(() => {
     setSeats(createSeats());
     setSelectedSeats([]);
-  }, [bus._id, bus.seatCapacity, bus.layoutType, isOpen, bookedSeats]);
+  }, [bus._id, bus.seatCapacity, bus.layoutType, isOpen, bookedSeats, createSeats]);
 
   useEffect(() => {
     const loadBookedSeats = async () => {
@@ -145,15 +148,13 @@ export function SeatSelectionModal({
       }
 
       try {
-        setIsLoadingSeats(true);
         setSeatsError('');
         const response = await getBookedSeats(bus.busNumber, searchData.date);
         setBookedSeats(response.data || []);
-      } catch (error: any) {
-        setSeatsError(error.message || 'Failed to load booked seats');
+      } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : String(error);
+        setSeatsError(msg || 'Failed to load booked seats');
         setBookedSeats([]);
-      } finally {
-        setIsLoadingSeats(false);
       }
     };
 
@@ -224,8 +225,9 @@ export function SeatSelectionModal({
       document.body.appendChild(form);
       form.submit();
       onClose();
-    } catch (error: any) {
-      setBookingError(error.message || 'Failed to create booking');
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      setBookingError(msg || 'Failed to create booking');
     } finally {
       setIsBooking(false);
     }

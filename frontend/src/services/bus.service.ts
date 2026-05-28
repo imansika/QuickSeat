@@ -33,8 +33,11 @@ export const registerBus = async (busData: {
       }
     );
     return response.data;
-  } catch (error: any) {
-    throw error.response?.data || { message: 'Failed to register bus' };
+  } catch (error: unknown) {
+    const resp = (error as { response?: { data?: unknown } })?.response?.data;
+    if (resp) throw resp;
+    const message = error instanceof Error ? error.message : String(error);
+    throw { message: message || 'Failed to register bus' };
   }
 };
 
@@ -48,8 +51,11 @@ export const getOperatorBuses = async () => {
       },
     });
     return response.data;
-  } catch (error: any) {
-    throw error.response?.data || { message: 'Failed to fetch buses' };
+  } catch (error: unknown) {
+    const resp = (error as { response?: { data?: unknown } })?.response?.data;
+    if (resp) throw resp;
+    const message = error instanceof Error ? error.message : String(error);
+    throw { message: message || 'Failed to fetch buses' };
   }
 };
 
@@ -63,8 +69,11 @@ export const getWeekdayOperatingBuses = async () => {
       },
     });
     return response.data;
-  } catch (error: any) {
-    throw error.response?.data || { message: 'Failed to fetch weekday operating buses' };
+  } catch (error: unknown) {
+    const resp = (error as { response?: { data?: unknown } })?.response?.data;
+    if (resp) throw resp;
+    const message = error instanceof Error ? error.message : String(error);
+    throw { message: message || 'Failed to fetch weekday operating buses' };
   }
 };
 
@@ -78,8 +87,11 @@ export const getWeekendOperatingBuses = async () => {
       },
     });
     return response.data;
-  } catch (error: any) {
-    throw error.response?.data || { message: 'Failed to fetch weekend operating buses' };
+  } catch (error: unknown) {
+    const resp = (error as { response?: { data?: unknown } })?.response?.data;
+    if (resp) throw resp;
+    const message = error instanceof Error ? error.message : String(error);
+    throw { message: message || 'Failed to fetch weekend operating buses' };
   }
 };
 
@@ -93,13 +105,16 @@ export const getBusById = async (id: string) => {
       },
     });
     return response.data;
-  } catch (error: any) {
-    throw error.response?.data || { message: 'Failed to fetch bus' };
+  } catch (error: unknown) {
+    const resp = (error as { response?: { data?: unknown } })?.response?.data;
+    if (resp) throw resp;
+    const message = error instanceof Error ? error.message : String(error);
+    throw { message: message || 'Failed to fetch bus' };
   }
 };
 
 // Update bus details
-export const updateBus = async (id: string, busData: any) => {
+export const updateBus = async (id: string, busData: unknown) => {
   try {
     const token = await getAuthToken();
     const response = await axios.put(
@@ -113,8 +128,11 @@ export const updateBus = async (id: string, busData: any) => {
       }
     );
     return response.data;
-  } catch (error: any) {
-    throw error.response?.data || { message: 'Failed to update bus' };
+  } catch (error: unknown) {
+    const resp = (error as { response?: { data?: unknown } })?.response?.data;
+    if (resp) throw resp;
+    const message = error instanceof Error ? error.message : String(error);
+    throw { message: message || 'Failed to update bus' };
   }
 };
 
@@ -128,8 +146,11 @@ export const deleteBus = async (id: string) => {
       },
     });
     return response.data;
-  } catch (error: any) {
-    throw error.response?.data || { message: 'Failed to delete bus' };
+  } catch (error: unknown) {
+    const resp = (error as { response?: { data?: unknown } })?.response?.data;
+    if (resp) throw resp;
+    const message = error instanceof Error ? error.message : String(error);
+    throw { message: message || 'Failed to delete bus' };
   }
 };
 
@@ -145,8 +166,11 @@ export const searchBuses = async (params: {
       params,
     });
     return response.data;
-  } catch (error: any) {
-    throw error.response?.data || { message: 'Failed to search buses' };
+  } catch (error: unknown) {
+    const resp = (error as { response?: { data?: unknown } })?.response?.data;
+    if (resp) throw resp;
+    const message = error instanceof Error ? error.message : String(error);
+    throw { message: message || 'Failed to search buses' };
   }
 };
 
@@ -162,7 +186,10 @@ export const searchAvailableBuses = async (params: {
       params,
     });
     return response.data;
-  } catch (error: any) {
-    throw error.response?.data || { message: 'Failed to search available buses' };
+  } catch (error: unknown) {
+    const resp = (error as { response?: { data?: unknown } })?.response?.data;
+    if (resp) throw resp;
+    const message = error instanceof Error ? error.message : String(error);
+    throw { message: message || 'Failed to search available buses' };
   }
 };

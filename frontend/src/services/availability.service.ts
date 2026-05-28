@@ -27,8 +27,11 @@ export const setAvailability = async (availabilityData: {
       }
     );
     return response.data;
-  } catch (error: any) {
-    throw error.response?.data || { message: 'Failed to update availability' };
+  } catch (error: unknown) {
+    const resp = (error as { response?: { data?: unknown } })?.response?.data;
+    if (resp) throw resp;
+    const message = error instanceof Error ? error.message : String(error);
+    throw { message: message || 'Failed to update availability' };
   }
 };
 
@@ -43,8 +46,11 @@ export const getAvailabilityByDate = async (date: string) => {
       },
     });
     return response.data;
-  } catch (error: any) {
-    throw error.response?.data || { message: 'Failed to fetch availability' };
+  } catch (error: unknown) {
+    const resp = (error as { response?: { data?: unknown } })?.response?.data;
+    if (resp) throw resp;
+    const message = error instanceof Error ? error.message : String(error);
+    throw { message: message || 'Failed to fetch availability' };
   }
 };
 
@@ -58,8 +64,11 @@ export const getOperatorAvailability = async () => {
       },
     });
     return response.data;
-  } catch (error: any) {
-    throw error.response?.data || { message: 'Failed to fetch availability records' };
+  } catch (error: unknown) {
+    const resp = (error as { response?: { data?: unknown } })?.response?.data;
+    if (resp) throw resp;
+    const message = error instanceof Error ? error.message : String(error);
+    throw { message: message || 'Failed to fetch availability records' };
   }
 };
 
@@ -73,7 +82,10 @@ export const deleteAvailability = async (id: string) => {
       },
     });
     return response.data;
-  } catch (error: any) {
-    throw error.response?.data || { message: 'Failed to delete availability' };
+  } catch (error: unknown) {
+    const resp = (error as { response?: { data?: unknown } })?.response?.data;
+    if (resp) throw resp;
+    const message = error instanceof Error ? error.message : String(error);
+    throw { message: message || 'Failed to delete availability' };
   }
 };
