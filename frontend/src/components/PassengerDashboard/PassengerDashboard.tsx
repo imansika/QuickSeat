@@ -26,6 +26,7 @@ import {
   useJsApiLoader,
 } from "@react-google-maps/api";
 import { searchAvailableBuses } from "../../services/bus.service";
+import { getBookedSeats } from "../../services/booking.service";
 import type { Bus } from "../../types/bus";
 import { SeatSelectionModal } from "../SeatSelection/SeatSelectionModal";
 
@@ -71,6 +72,7 @@ export function PassengerDashboard({
   const [selectedBus, setSelectedBus] = useState<Bus | null>(null);
   const [routeIndex, setRouteIndex] = useState<number>(0);
   const [isSeatModalOpen, setIsSeatModalOpen] = useState(false);
+  const [bookedSeatCounts, setBookedSeatCounts] = useState<Record<string, number>>({});
 
   // Load Google Maps API
   const { isLoaded } = useJsApiLoader({
@@ -98,6 +100,34 @@ export function PassengerDashboard({
       }
     }
   };
+
+  useEffect(() => {
+    const loadBookedSeatCounts = async () => {
+      if (!searchData.date || availableBuses.length === 0) {
+        setBookedSeatCounts({});
+        return;
+      }
+
+      try {
+        const results = await Promise.all(
+          availableBuses.map(async (bus) => {
+            const response = await getBookedSeats(bus.busNumber, searchData.date);
+            return [bus.busNumber.toUpperCase(), (response.data || []).length] as const;
+          })
+        );
+
+        const counts: Record<string, number> = {};
+        results.forEach(([busNumber, count]) => {
+          counts[busNumber] = count;
+        });
+        setBookedSeatCounts(counts);
+      } catch (error) {
+        setBookedSeatCounts({});
+      }
+    };
+
+    loadBookedSeatCounts();
+  }, [availableBuses, searchData.date]);
 
   // Calculate route when buses are loaded or when a specific bus is selected
   useEffect(() => {
@@ -214,10 +244,9 @@ export function PassengerDashboard({
   };
 
   // Helper function to get available seats (mock data - in production would come from backend)
-  const getAvailableSeats = (busId: string, totalCapacity: number): number => {
-    // Mock booked seats count - in production this would come from the backend
-    const bookedSeatsCount = Math.floor(Math.random() * (totalCapacity * 0.4)); // 0-40% booked
-    return totalCapacity - bookedSeatsCount;
+  const getAvailableSeats = (busNumber: string, totalCapacity: number): number => {
+    const bookedCount = bookedSeatCounts[busNumber.toUpperCase()] || 0;
+    return Math.max(totalCapacity - bookedCount, 0);
   };
 
   const sortedBuses = [...availableBuses].sort((a, b) => {
@@ -583,7 +612,7 @@ export function PassengerDashboard({
                     const price = calculatePrice(distanceKm, bus.ratePerKm);
                     const isRecommended =
                       sortBy === "recommended" && index === 0;
-                    const availableSeats = getAvailableSeats(bus._id, bus.seatCapacity);
+                    const availableSeats = getAvailableSeats(bus.busNumber, bus.seatCapacity);
 
                     return (
                       <div

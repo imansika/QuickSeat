@@ -59,3 +59,18 @@ export const updateBookingStatus = async (id: string, status: 'pending' | 'confi
     throw error.response?.data || { message: 'Failed to update booking status' };
   }
 };
+
+export const getBookedSeats = async (busNumber: string, date: string) => {
+  try {
+    const token = await getAuthToken();
+    const response = await axios.get(`${API_URL}/bookings/seats`, {
+      params: { busNumber, date },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: 'Failed to fetch booked seats' };
+  }
+};

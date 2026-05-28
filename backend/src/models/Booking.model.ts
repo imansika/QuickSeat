@@ -59,7 +59,6 @@ const BookingSchema = new Schema<IBooking>(
   }
 );
 
-BookingSchema.index({ bookingId: 1 }, { unique: true });
 BookingSchema.index({ busNumber: 1, journeyDate: 1 });
 
 const Booking = mongoose.model<IBooking>('Booking', BookingSchema);

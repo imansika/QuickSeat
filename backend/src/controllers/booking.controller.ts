@@ -118,3 +118,48 @@ export const updateBookingStatus = async (req: AuthRequest, res: Response) => {
     });
   }
 };
+
+export const getBookedSeatsByBusAndDate = async (req: AuthRequest, res: Response) => {
+  try {
+    const { busNumber, date } = req.query;
+
+    if (!busNumber || !date) {
+      return res.status(400).json({
+        success: false,
+        message: 'Bus number and date are required',
+      });
+    }
+
+    const journeyDate = new Date(date as string);
+    if (isNaN(journeyDate.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid date format',
+      });
+    }
+
+    journeyDate.setUTCHours(0, 0, 0, 0);
+    const nextDay = new Date(journeyDate);
+    nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+
+    const bookings = await Booking.find({
+      busNumber: String(busNumber).toUpperCase(),
+      journeyDate: { $gte: journeyDate, $lt: nextDay },
+      status: { $in: ['pending', 'confirmed'] },
+    }).select('seats');
+
+    const bookedSeats = bookings.flatMap((booking) => booking.seats);
+
+    return res.status(200).json({
+      success: true,
+      data: bookedSeats,
+    });
+  } catch (error: any) {
+    console.error('Error fetching booked seats:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch booked seats',
+      error: error.message,
+    });
+  }
+};

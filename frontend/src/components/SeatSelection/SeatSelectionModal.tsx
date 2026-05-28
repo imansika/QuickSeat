@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, User, Wifi, Snowflake } from 'lucide-react';
 import type { Bus } from '../../types/bus';
-import { createBooking } from '../../services/booking.service';
+import { createBooking, getBookedSeats } from '../../services/booking.service';
+import { preparePayherePayment } from '../../services/payment.service';
 
 type SeatStatus = 'available' | 'selected' | 'booked';
 
@@ -68,9 +69,13 @@ export function SeatSelectionModal({
     return sizes;
   };
 
+  const [bookedSeats, setBookedSeats] = useState<string[]>([]);
+  const [isLoadingSeats, setIsLoadingSeats] = useState(false);
+  const [seatsError, setSeatsError] = useState('');
+
   const createSeats = () => {
     const seats: Seat[] = [];
-    const bookedSeats = ['A3', 'A4', 'B2', 'C1', 'D3', 'E2', 'F4', 'G1']; // Mock booked seats
+    const bookedSeatSet = new Set(bookedSeats.map((seat) => seat.toUpperCase()));
     const { leftCount, rightCount, hasAisle } = getLayoutConfig(bus.layoutType);
     const totalPerRow = leftCount + rightCount;
     const extraLastRowSeat = hasAisle && ['2x2', '1x2', '2x1'].includes(bus.layoutType);
@@ -82,7 +87,7 @@ export function SeatSelectionModal({
 
       for (let slotIndex = 0; slotIndex < rowSize; slotIndex += 1) {
         const seatNumber = `${rowLabel}${slotIndex + 1}`;
-        const isBooked = bookedSeats.includes(seatNumber);
+        const isBooked = bookedSeatSet.has(seatNumber.toUpperCase());
         const isCenterSeat = hasCenterSeat && slotIndex === leftCount;
 
         let position: 'left' | 'right' | 'center' = 'left';
@@ -121,29 +126,61 @@ export function SeatSelectionModal({
   };
 
   const [seats, setSeats] = useState<Seat[]>(createSeats());
-  const [selectedSeat, setSelectedSeat] = useState<string | null>(null);
+  const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
   const [isBooking, setIsBooking] = useState(false);
   const [bookingError, setBookingError] = useState('');
 
   useEffect(() => {
     setSeats(createSeats());
-    setSelectedSeat(null);
-  }, [bus._id, bus.seatCapacity, bus.layoutType, isOpen]);
+    setSelectedSeats([]);
+  }, [bus._id, bus.seatCapacity, bus.layoutType, isOpen, bookedSeats]);
+
+  useEffect(() => {
+    const loadBookedSeats = async () => {
+      if (!isOpen) return;
+      if (!bus?.busNumber || !searchData?.date) {
+        setBookedSeats([]);
+        setSeatsError('');
+        return;
+      }
+
+      try {
+        setIsLoadingSeats(true);
+        setSeatsError('');
+        const response = await getBookedSeats(bus.busNumber, searchData.date);
+        setBookedSeats(response.data || []);
+      } catch (error: any) {
+        setSeatsError(error.message || 'Failed to load booked seats');
+        setBookedSeats([]);
+      } finally {
+        setIsLoadingSeats(false);
+      }
+    };
+
+    loadBookedSeats();
+  }, [bus.busNumber, isOpen, searchData?.date]);
 
   const handleSeatClick = (seatNumber: string) => {
     const seat = seats.find(s => s.number === seatNumber);
     if (!seat || seat.status === 'booked') return;
 
+    const isSelected = seat.status === 'selected';
     setSeats(seats.map(s => ({
       ...s,
-      status: s.number === seatNumber ? 'selected' : s.status === 'selected' ? 'available' : s.status,
+      status: s.number === seatNumber
+        ? (isSelected ? 'available' : 'selected')
+        : s.status,
     })));
 
-    setSelectedSeat(seatNumber);
+    setSelectedSeats(prev =>
+      isSelected
+        ? prev.filter((seatId) => seatId !== seatNumber)
+        : [...prev, seatNumber]
+    );
   };
 
   const handleContinue = async () => {
-    if (!selectedSeat) return;
+    if (selectedSeats.length === 0) return;
     if (!searchData?.date) {
       setBookingError('Please select a journey date before booking');
       return;
@@ -153,25 +190,39 @@ export function SeatSelectionModal({
       setIsBooking(true);
       setBookingError('');
 
-      const response = await createBooking({
+      const bookingResponse = await createBooking({
         busNumber: bus.busNumber,
-        seats: [selectedSeat],
+        seats: selectedSeats,
         journeyDate: searchData.date,
-        totalAmount: price + 50,
+        totalAmount: price * selectedSeats.length + 50,
       });
 
-      navigate('/payment', {
-        state: {
-          bookingData: {
-            bus,
-            searchData,
-            price,
-            duration,
-            selectedSeat,
-            booking: response.data,
-          }
-        }
+      const booking = bookingResponse.data;
+      const [firstName, ...lastNameParts] = (searchData?.fullName || 'Passenger').split(' ');
+      const lastName = lastNameParts.join(' ') || 'User';
+
+      const paymentResponse = await preparePayherePayment({
+        bookingId: booking.bookingId,
+        firstName,
+        lastName,
       });
+
+      const data = paymentResponse.data;
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = data.paymentUrl;
+
+      Object.entries(data).forEach(([key, value]) => {
+        if (key === 'paymentUrl') return;
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = String(value ?? '');
+        form.appendChild(input);
+      });
+
+      document.body.appendChild(form);
+      form.submit();
       onClose();
     } catch (error: any) {
       setBookingError(error.message || 'Failed to create booking');
@@ -281,6 +332,10 @@ export function SeatSelectionModal({
                     <span className="text-sm font-medium text-slate-700">Booked</span>
                   </div>
                 </div>
+
+                {seatsError && (
+                  <div className="mb-4 text-sm text-red-600">{seatsError}</div>
+                )}
 
                 {/* Driver Section - Single Unit */}
                 <div className="flex items-center gap-3 mb-6">
@@ -416,18 +471,21 @@ export function SeatSelectionModal({
                   </div>
 
                   <div className="bg-gradient-to-br from-[#264b8d]/10 to-[#1e3a6d]/10 rounded-lg p-4 border-2 border-[#264b8d]/30">
-                    <p className="text-sm text-slate-600 mb-2">Selected Seat</p>
-                    {selectedSeat ? (
-                      <p className="font-bold text-[#264b8d] text-2xl">{selectedSeat}</p>
+                    <p className="text-sm text-slate-600 mb-2">Selected Seats</p>
+                    {selectedSeats.length > 0 ? (
+                      <div>
+                        <p className="font-bold text-[#264b8d] text-2xl">{selectedSeats.length}</p>
+                        <p className="text-xs text-slate-600 mt-1">{selectedSeats.join(', ')}</p>
+                      </div>
                     ) : (
-                      <p className="text-slate-400 italic">No seat selected</p>
+                      <p className="text-slate-400 italic">No seats selected</p>
                     )}
                   </div>
 
                   <div className="bg-white rounded-lg p-4 border border-slate-200">
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-slate-600">Seat Price</span>
-                      <span className="font-semibold text-slate-900">Rs. {price}</span>
+                      <span className="font-semibold text-slate-900">Rs. {price} x {selectedSeats.length || 1}</span>
                     </div>
                     <div className="flex justify-between items-center mb-3">
                       <span className="text-slate-600">Service Fee</span>
@@ -435,26 +493,26 @@ export function SeatSelectionModal({
                     </div>
                     <div className="flex justify-between items-center pt-3 border-t-2 border-slate-300">
                       <span className="font-bold text-lg text-slate-900">Total</span>
-                      <span className="font-bold text-2xl text-[#264b8d]">Rs. {price + 50}</span>
+                      <span className="font-bold text-2xl text-[#264b8d]">Rs. {price * (selectedSeats.length || 1) + 50}</span>
                     </div>
                   </div>
                 </div>
 
                 <button
                   onClick={handleContinue}
-                  disabled={!selectedSeat || isBooking}
+                  disabled={selectedSeats.length === 0 || isBooking}
                   className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${
-                    selectedSeat && !isBooking
+                    selectedSeats.length > 0 && !isBooking
                       ? 'bg-gradient-to-r from-[#264b8d] to-[#1e3a6d] text-white hover:shadow-xl transform hover:scale-[1.02]'
                       : 'bg-slate-300 text-slate-500 cursor-not-allowed'
                   }`}
                 >
-                  {isBooking ? 'Saving Booking...' : 'Continue to Payment'}
+                  {isBooking ? 'Redirecting to PayHere...' : 'Pay with PayHere'}
                 </button>
 
-                {!selectedSeat && !bookingError && (
+                {selectedSeats.length === 0 && !bookingError && (
                   <p className="text-sm text-center text-slate-500 mt-3">
-                    Please select a seat to continue
+                    Please select seats to continue
                   </p>
                 )}
 

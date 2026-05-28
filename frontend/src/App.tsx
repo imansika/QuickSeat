@@ -1,8 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
-import { LandingPage, SignUp, SignIn, OperatorDashboard, RegisterOperator } from './components'
+import { LandingPage, SignUp, SignIn, OperatorDashboard, RegisterOperator, PaymentFailed } from './components'
 import { PassengerDashboard } from './components/PassengerDashboard/PassengerDashboard'
 import { SeatSelection } from './components/SeatSelection/SeatSelection'
-import { Payment } from './components/Payment'
 import { BookingConfirmation } from './components/BookingConfirmation'
 import { MyBookings } from './components/MyBookings'
 import { UserProfile } from './components/UserProfile'
@@ -165,17 +164,6 @@ function AppRoutes() {
         } 
       />
 
-      {/* Payment - Protected Route */}
-      <Route 
-        path="/payment" 
-        element={
-          currentUser ? (
-            <Payment />
-          ) : (
-            <Navigate to="/signin" replace />
-          )
-        } 
-      />
 
       {/* Booking Confirmation - Protected Route */}
       <Route 
@@ -183,6 +171,17 @@ function AppRoutes() {
         element={
           currentUser ? (
             <BookingConfirmation />
+          ) : (
+            <Navigate to="/signin" replace />
+          )
+        } 
+      />
+
+      <Route 
+        path="/payment-failed" 
+        element={
+          currentUser ? (
+            <PaymentFailed />
           ) : (
             <Navigate to="/signin" replace />
           )

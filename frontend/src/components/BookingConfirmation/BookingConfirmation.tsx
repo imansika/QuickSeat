@@ -12,21 +12,7 @@ export function BookingConfirmation() {
   // Get booking data from navigation state
   const confirmationData = location.state?.confirmationData;
   
-  if (!confirmationData) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-xl text-gray-600 mb-4">No booking confirmation found</p>
-          <button
-            onClick={() => navigate('/passenger')}
-            className="px-6 py-3 bg-[#264b8d] text-white rounded-xl hover:bg-[#1e3a6d]"
-          >
-            Back to Search
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const isFallback = !confirmationData;
 
   const userEmail = userProfile?.email || "passenger@example.com";
 
@@ -145,7 +131,9 @@ export function BookingConfirmation() {
               </div>
             </div>
             <h1 className="text-4xl font-bold text-slate-900 mb-3">Booking Confirmed!</h1>
-            <p className="text-lg text-slate-700">Your seat has been successfully booked</p>
+            <p className="text-lg text-slate-700">
+              {isFallback ? 'Your payment was received successfully.' : 'Your seat has been successfully booked'}
+            </p>
             
           </div>
 

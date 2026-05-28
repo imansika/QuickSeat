@@ -4,7 +4,7 @@ export { SignUp } from './SignUp/SignUp';
 export { SignIn } from './SignIn/SignIn';
 export { OperatorDashboard } from './OperatorDashboard/OperatorDashboard';
 export { RegisterOperator } from './RegisterOperator';
-export { Payment } from './Payment';
 export { BookingConfirmation } from './BookingConfirmation';
+export { PaymentFailed } from './PaymentFailed';
 export { MyBookings } from './MyBookings';
 export { UserProfile } from './UserProfile';
