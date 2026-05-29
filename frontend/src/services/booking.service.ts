@@ -47,6 +47,40 @@ export const getMyBookings = async () => {
   }
 };
 
+export const getMyUpcomingBookings = async () => {
+  try {
+    const token = await getAuthToken();
+    const response = await axios.get(`${API_URL}/bookings/me/upcoming`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error: unknown) {
+    const resp = (error as { response?: { data?: unknown } })?.response?.data;
+    if (resp) throw resp;
+    const message = error instanceof Error ? error.message : String(error);
+    throw { message: message || 'Failed to fetch upcoming bookings' };
+  }
+};
+
+export const getMyPastBookings = async () => {
+  try {
+    const token = await getAuthToken();
+    const response = await axios.get(`${API_URL}/bookings/me/past`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error: unknown) {
+    const resp = (error as { response?: { data?: unknown } })?.response?.data;
+    if (resp) throw resp;
+    const message = error instanceof Error ? error.message : String(error);
+    throw { message: message || 'Failed to fetch past bookings' };
+  }
+};
+
 export const updateBookingStatus = async (id: string, status: 'pending' | 'confirmed' | 'cancelled') => {
   try {
     const token = await getAuthToken();

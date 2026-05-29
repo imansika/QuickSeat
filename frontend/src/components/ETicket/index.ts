@@ -1,1 +1,0 @@
-export { ETicket } from './ETicket';

@@ -2,6 +2,19 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth.middleware';
 import Booking from '../models/Booking.model';
 
+const getUtcStartOfToday = () => {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+};
+
+const getConfirmedBookingsForUser = async (userId: string, journeyDateFilter: Record<string, Date>) => {
+  return Booking.find({
+    userId,
+    status: 'confirmed',
+    journeyDate: journeyDateFilter,
+  }).sort({ journeyDate: 1, createdAt: -1 });
+};
+
 const generateBookingId = () => {
   const randomPart = Math.random().toString(36).slice(2, 8).toUpperCase();
   return `BK${Date.now()}${randomPart}`;
@@ -74,6 +87,58 @@ export const getMyBookings = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Failed to fetch bookings',
+      error: error.message,
+    });
+  }
+};
+
+export const getMyUpcomingBookings = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user?.uid) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const todayStart = getUtcStartOfToday();
+    const bookings = await getConfirmedBookingsForUser(req.user.uid, {
+      $gte: todayStart,
+    });
+
+    return res.status(200).json({
+      success: true,
+      count: bookings.length,
+      data: bookings,
+    });
+  } catch (error: any) {
+    console.error('Error fetching upcoming bookings:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch upcoming bookings',
+      error: error.message,
+    });
+  }
+};
+
+export const getMyPastBookings = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user?.uid) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const todayStart = getUtcStartOfToday();
+    const bookings = await getConfirmedBookingsForUser(req.user.uid, {
+      $lt: todayStart,
+    });
+
+    return res.status(200).json({
+      success: true,
+      count: bookings.length,
+      data: bookings,
+    });
+  } catch (error: any) {
+    console.error('Error fetching past bookings:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch past bookings',
       error: error.message,
     });
   }
