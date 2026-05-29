@@ -1,11 +1,13 @@
-import { useMemo, useState } from "react";
+import { useState, useEffect } from "react";
 import { Calendar } from "lucide-react";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
+import { getDailyReport, getMonthlyReport } from "../../services/report.service";
 
 interface DailyReportRow {
   busNumber: string;
   passengerCount: number;
   revenue: number;
-  date: string;
 }
 
 interface MonthlyReportRow {
@@ -14,70 +16,68 @@ interface MonthlyReportRow {
   revenue: number;
 }
 
-const mockDailyData: DailyReportRow[] = [
-  {
-    busNumber: "AB-9876",
-    passengerCount: 42,
-    revenue: 12600,
-    date: "2026-05-26",
-  },
-  {
-    busNumber: "CD-2234",
-    passengerCount: 36,
-    revenue: 10800,
-    date: "2026-05-26",
-  },
-  {
-    busNumber: "EL-4567",
-    passengerCount: 28,
-    revenue: 8400,
-    date: "2026-05-26",
-  },
-  {
-    busNumber: "AB-9876",
-    passengerCount: 30,
-    revenue: 9000,
-    date: "2026-05-27",
-  },
-  {
-    busNumber: "CD-2234",
-    passengerCount: 25,
-    revenue: 7500,
-    date: "2026-05-27",
-  },
-];
-
-const mockMonthlyData: MonthlyReportRow[] = [
-  { date: "2026-05-01", busNumber: "AB-9876", revenue: 8200 },
-  { date: "2026-05-01", busNumber: "CD-2234", revenue: 7600 },
-  { date: "2026-05-02", busNumber: "AB-9876", revenue: 9400 },
-  { date: "2026-05-02", busNumber: "EL-4567", revenue: 6100 },
-  { date: "2026-05-03", busNumber: "CD-2234", revenue: 8300 },
-  { date: "2026-06-01", busNumber: "AB-9876", revenue: 9000 },
-];
-
 export function RevenueReport() {
   const [reportType, setReportType] = useState<"daily" | "monthly">("daily");
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedMonth, setSelectedMonth] = useState("");
+  const [selectedBusNumber, setSelectedBusNumber] = useState<string>("");
 
-  const dailyRows = useMemo(() => {
-    if (!selectedDate) return [];
-    return mockDailyData.filter((row) => row.date === selectedDate);
-  }, [selectedDate]);
+  const [dailyRows, setDailyRows] = useState<DailyReportRow[]>([]);
+  const [monthlyRows, setMonthlyRows] = useState<MonthlyReportRow[]>([]);
+  const [dailyTotal, setDailyTotal] = useState<number>(0);
+  const [monthlyTotal, setMonthlyTotal] = useState<number>(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const dailyTotal = useMemo(() => {
-    return dailyRows.reduce((sum, row) => sum + row.revenue, 0);
-  }, [dailyRows]);
+  useEffect(() => {
+    const fetchDaily = async () => {
+      if (!selectedDate) {
+        setDailyRows([]);
+        setDailyTotal(0);
+        return;
+      }
 
-  const monthlyRows = useMemo(() => {
-    if (!selectedMonth) return [];
-    return mockMonthlyData.filter((row) => row.date.startsWith(selectedMonth));
+      setLoading(true);
+      setError(null);
+      try {
+        const resp = await getDailyReport(selectedDate, selectedBusNumber || undefined);
+        setDailyRows(resp.data || []);
+        setDailyTotal(Number(resp.totalRevenue || 0));
+      } catch (err: unknown) {
+        const msg = (err as any)?.message || String(err);
+        setError(msg);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDaily();
+  }, [selectedDate, selectedBusNumber]);
+
+  useEffect(() => {
+    const fetchMonthly = async () => {
+      if (!selectedMonth) {
+        setMonthlyRows([]);
+        setMonthlyTotal(0);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+      try {
+        const resp = await getMonthlyReport(selectedMonth);
+        setMonthlyRows(resp.data || []);
+        setMonthlyTotal(Number(resp.totalRevenue || 0));
+      } catch (err: unknown) {
+        const msg = (err as any)?.message || String(err);
+        setError(msg);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMonthly();
   }, [selectedMonth]);
-
-  const monthlyTotal = useMemo(() => {
-    return monthlyRows.reduce((sum, row) => sum + row.revenue, 0);
-  }, [monthlyRows]);
 
   const downloadReport = () => {
     const isDaily = reportType === "daily";
@@ -85,39 +85,88 @@ export function RevenueReport() {
 
     if (rows.length === 0) return;
 
-    const header = isDaily
-      ? ["Bus Number", "Passenger Count", "Revenue (LKR)"]
-      : ["Date", "Bus Number", "Revenue (LKR)"];
+    const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+    const reportTitle = isDaily
+      ? `Daily Revenue Report - ${selectedDate}`
+      : `Monthly Revenue Report - ${selectedMonth}`;
+    const subtitle = isDaily && selectedBusNumber
+      ? `Bus Number: ${selectedBusNumber}`
+      : isDaily
+        ? "All buses"
+        : "";
 
-    const dataLines = rows.map((row) => {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.text(reportTitle, 40, 44);
+
+    if (subtitle) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(11);
+      doc.text(subtitle, 40, 66);
+    }
+
+    const tableHead = isDaily
+      ? [["Bus Number", "Passenger Count", "Revenue (LKR)"]]
+      : [["Date", "Bus Number", "Revenue (LKR)"]];
+
+    const tableBody = rows.map((row) => {
       if (isDaily) {
         const dailyRow = row as DailyReportRow;
-        return [dailyRow.busNumber, dailyRow.passengerCount, dailyRow.revenue];
+        return [
+          dailyRow.busNumber,
+          String(dailyRow.passengerCount),
+          dailyRow.revenue.toLocaleString(),
+        ];
       }
 
       const monthlyRow = row as MonthlyReportRow;
-      return [monthlyRow.date, monthlyRow.busNumber, monthlyRow.revenue];
+      return [
+        monthlyRow.date,
+        monthlyRow.busNumber,
+        monthlyRow.revenue.toLocaleString(),
+      ];
     });
 
-    const totalLine = isDaily
-      ? ["Total", "", dailyTotal]
-      : ["Total", "", monthlyTotal];
+    autoTable(doc, {
+      startY: subtitle ? 84 : 72,
+      head: tableHead,
+      body: [
+        ...tableBody,
+        [
+          "Total",
+          "",
+          (isDaily ? dailyTotal : monthlyTotal).toLocaleString(),
+        ],
+      ],
+      styles: {
+        font: "helvetica",
+        fontSize: 10,
+        cellPadding: 8,
+      },
+      headStyles: {
+        fillColor: [38, 75, 141],
+        textColor: [255, 255, 255],
+        fontStyle: "bold",
+      },
+      bodyStyles: {
+        textColor: [51, 65, 85],
+      },
+      alternateRowStyles: {
+        fillColor: [248, 250, 252],
+      },
+      didDrawCell: (data) => {
+        const isTotalRow = data.section === "body" && data.row.index === tableBody.length;
+        if (!isTotalRow) return;
 
-    const csvContent = [header, ...dataLines, totalLine]
-      .map((line) => line.join(","))
-      .join("\n");
+        doc.setFont("helvetica", "bold");
+      },
+    });
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = isDaily
-      ? `daily-report-${selectedDate || "selected-date"}.csv`
-      : `monthly-report-${selectedMonth || "selected-month"}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    const fileName = isDaily
+      ? `daily-revenue-report-${selectedDate}${selectedBusNumber ? `-${selectedBusNumber}` : ""}.pdf`
+      : `monthly-revenue-report-${selectedMonth}.pdf`;
+
+    doc.save(fileName);
   };
 
   return (
@@ -161,18 +210,31 @@ export function RevenueReport() {
 
           <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
             {reportType === "daily" ? (
-              <div className="w-full lg:w-72">
-                <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
-                  <Calendar className="w-4 h-4 text-[#264b8d]" />
-                  Select Date
-                </label>
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(event) => setSelectedDate(event.target.value)}
-                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#264b8d]"
-                />
-              </div>
+              <>
+                <div className="w-full lg:w-72">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
+                    <Calendar className="w-4 h-4 text-[#264b8d]" />
+                    Select Date
+                  </label>
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(event) => setSelectedDate(event.target.value)}
+                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#264b8d]"
+                  />
+                </div>
+
+                <div className="w-full lg:w-72">
+                  <label className="text-sm font-semibold text-slate-700 mb-2">Bus Number</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. AB-9876"
+                    value={selectedBusNumber}
+                    onChange={(e) => setSelectedBusNumber(e.target.value)}
+                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#264b8d]"
+                  />
+                </div>
+              </>
             ) : (
               <div className="w-full lg:w-72">
                 <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
@@ -191,6 +253,12 @@ export function RevenueReport() {
         </div>
       </div>
 
+      {error ? (
+        <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      ) : null}
+
       {reportType === "daily" ? (
         <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
           <div className="p-8 border-b border-slate-200 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -198,10 +266,10 @@ export function RevenueReport() {
             <button
               type="button"
               onClick={downloadReport}
-              disabled={dailyRows.length === 0}
+              disabled={dailyRows.length === 0 || loading}
               className="h-[52px] px-6 rounded-xl font-semibold border-2 border-[#264b8d] text-[#264b8d] hover:bg-[#264b8d] hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Download Report
+              {loading ? "Loading..." : "Download PDF"}
             </button>
           </div>
           <div className="p-8">
@@ -256,10 +324,10 @@ export function RevenueReport() {
             <button
               type="button"
               onClick={downloadReport}
-              disabled={monthlyRows.length === 0}
+              disabled={monthlyRows.length === 0 || loading}
               className="h-[52px] px-6 rounded-xl font-semibold border-2 border-[#264b8d] text-[#264b8d] hover:bg-[#264b8d] hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Download Report
+              {loading ? "Loading..." : "Download PDF"}
             </button>
           </div>
           <div className="p-8">

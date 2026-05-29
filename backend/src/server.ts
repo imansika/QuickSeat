@@ -8,7 +8,9 @@ import busRoutes from "./routes/bus.routes";
 import availabilityRoutes from "./routes/availability.routes";
 import bookingRoutes from "./routes/booking.routes";
 import paymentRoutes from "./routes/payment.routes";
+import reportRoutes from "./routes/reportRoutes";
 import ticketRoutes from "./routes/ticket.routes";
+import routeRoutes from "./routes/route.routes";
 
 dotenv.config();
 
@@ -46,7 +48,9 @@ app.use('/api', busRoutes);
 app.use('/api', availabilityRoutes);
 app.use('/api', bookingRoutes);
 app.use('/api', paymentRoutes);
+app.use('/api', reportRoutes);
 app.use('/api', ticketRoutes);
+app.use('/api', routeRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
