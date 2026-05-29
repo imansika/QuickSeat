@@ -59,3 +59,36 @@ export const getRoutes = async (req: AuthRequest, res: Response) => {
     });
   }
 };
+
+export const updateRoute = async (req: AuthRequest, res: Response) => {
+  try {
+    const routeNumberParam = req.params.routeNumber;
+    const { stops } = req.body;
+
+    // Normalize routeNumber which may be string or string[] depending on Express parsing
+    const routeNumber = Array.isArray(routeNumberParam) ? routeNumberParam[0] : routeNumberParam;
+
+    if (!routeNumber) {
+      return res.status(400).json({ success: false, message: 'Route number is required in params' });
+    }
+
+    if (!Array.isArray(stops) || stops.length < 2) {
+      return res.status(400).json({ success: false, message: 'At least two stops are required' });
+    }
+
+    const route = await Route.findOneAndUpdate(
+      { routeNumber: String(routeNumber).trim() },
+      { stops: stops.map((s: string) => String(s).trim()).filter(Boolean) },
+      { new: true, runValidators: true }
+    );
+
+    if (!route) {
+      return res.status(404).json({ success: false, message: 'Route not found' });
+    }
+
+    return res.status(200).json({ success: true, message: 'Route updated', data: route });
+  } catch (error: any) {
+    console.error('Error updating route:', error);
+    return res.status(500).json({ success: false, message: 'Failed to update route', error: error.message });
+  }
+};

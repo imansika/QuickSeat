@@ -3,6 +3,7 @@ import { AuthRequest } from '../middleware/auth.middleware';
 import Bus from '../models/Bus.model';
 import mongoose from 'mongoose';
 import { BusAvailability } from '../models/BusAvailability.model';
+import Route from '../models/Route.model';
 
 // Register a new bus
 export const registerBus = async (req: AuthRequest, res: Response) => {
@@ -364,10 +365,46 @@ export const searchAvailableBuses = async (req: AuthRequest, res: Response) => {
       }
     }
 
+    const routeNumbers = Array.from(
+      new Set(
+        buses
+          .map((bus) => (bus.routeNumber || '').trim())
+          .filter(Boolean)
+      )
+    );
+
+    const routeStopMap = new Map<string, string[]>();
+    if (routeNumbers.length > 0) {
+      const routes = await Route.find({ routeNumber: { $in: routeNumbers } }).lean();
+      routes.forEach((route) => {
+        const normalizedStops = (route.stops || [])
+          .map((stop) => String(stop || '').trim())
+          .filter(Boolean);
+        routeStopMap.set((route.routeNumber || '').trim(), normalizedStops);
+      });
+    }
+
+    const busesWithResolvedStops = buses.map((bus) => {
+      const busObject = bus.toObject();
+      const routeStops = routeStopMap.get((bus.routeNumber || '').trim());
+
+      if (!routeStops || routeStops.length === 0) {
+        return busObject;
+      }
+
+      return {
+        ...busObject,
+        stops: routeStops.map((city) => ({
+          name: city,
+          location: city,
+        })),
+      };
+    });
+
     res.status(200).json({
       success: true,
-      count: buses.length,
-      data: buses,
+      count: busesWithResolvedStops.length,
+      data: busesWithResolvedStops,
     });
   } catch (error: any) {
     console.error('Error searching available buses:', error);

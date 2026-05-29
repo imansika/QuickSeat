@@ -131,76 +131,89 @@ export function PassengerDashboard({
 
   // Calculate route when buses are loaded or when a specific bus is selected
   useEffect(() => {
-    if (
-      availableBuses.length > 0 &&
-      searchData.origin &&
-      searchData.destination &&
-      isLoaded
-    ) {
-      // If a specific bus is selected, calculate route for that bus
-      // Otherwise, show the first bus route
-      const busToDisplay = selectedBus || availableBuses[0];
-      
-      if (!busToDisplay) return;
+    try {
+      if (
+        availableBuses.length > 0 &&
+        searchData.origin &&
+        searchData.destination &&
+        isLoaded
+      ) {
+        const busToDisplay = selectedBus || availableBuses[0];
 
-      const directionsService = new google.maps.DirectionsService();
-      
-      // Get the bus index to determine which route variant to use
-      const busIndex = availableBuses.findIndex(b => b._id === busToDisplay._id);
-      
-      // Get waypoints from the bus stops stored in MongoDB
-      const waypoints: google.maps.DirectionsWaypoint[] = busToDisplay.stops
-        ? busToDisplay.stops.map((stop: BusStop) => ({
-            location: stop.location + ", Sri Lanka",
-            stopover: true,
-          }))
-        : [];
-      
-      directionsService.route(
-        {
-          origin: searchData.origin + ", Sri Lanka",
-          destination: searchData.destination + ", Sri Lanka",
-          waypoints: waypoints, // Use predefined waypoints for public bus routes
-          travelMode: google.maps.TravelMode.DRIVING,
-          // Request alternative routes only if no waypoints are defined
-          provideRouteAlternatives: waypoints.length === 0,
-        },
-        (result, status) => {
-          if (status === google.maps.DirectionsStatus.OK && result) {
-            // Use different route alternatives for different buses only if no waypoints
-            const selectedRouteIndex = waypoints.length === 0 && result.routes.length > 1
-              ? busIndex % result.routes.length 
-              : 0;
-            
-            setDirections(result);
-            setRouteIndex(selectedRouteIndex);
-            
-            // Get distance and duration from the selected route
-            const route = result.routes[selectedRouteIndex];
-            if (route && route.legs[0]) {
-              // Sum up all legs if there are waypoints
-              let totalDistance = 0;
-              let totalDuration = 0;
-              route.legs.forEach(leg => {
-                totalDistance += leg.distance?.value || 0;
-                totalDuration += leg.duration?.value || 0;
-              });
-              
-              // Convert to readable format
-              const distanceKm = (totalDistance / 1000).toFixed(1);
-              const durationHours = Math.floor(totalDuration / 3600);
-              const durationMins = Math.floor((totalDuration % 3600) / 60);
-              
-              setDistance(`${distanceKm} km`);
-              setDuration(
-                durationHours > 0 
-                  ? `${durationHours} hour${durationHours > 1 ? 's' : ''} ${durationMins} mins`
-                  : `${durationMins} mins`
-              );
+        if (!busToDisplay) return;
+
+        const directionsService = new google.maps.DirectionsService();
+
+        const busIndex = availableBuses.findIndex(b => b._id === busToDisplay._id);
+
+        // If bus has ordered stops, use first as origin, last as destination,
+        // and the intermediate stops as ordered waypoints so Directions goes
+        // through the listed main cities in order.
+        let origin = searchData.origin + ", Sri Lanka";
+        let destination = searchData.destination + ", Sri Lanka";
+        let waypoints: google.maps.DirectionsWaypoint[] = [];
+
+        if (busToDisplay.stops && busToDisplay.stops.length >= 2) {
+          const stopsArr = busToDisplay.stops as BusStop[];
+          const first = stopsArr[0];
+          const last = stopsArr[stopsArr.length - 1];
+          origin = (first.location || first.name || searchData.origin) + ", Sri Lanka";
+          destination = (last.location || last.name || searchData.destination) + ", Sri Lanka";
+          const mids = stopsArr.slice(1, stopsArr.length - 1);
+          waypoints = mids.map((stop) => ({ location: (stop.location || stop.name) + ", Sri Lanka", stopover: true }));
+        }
+
+        directionsService.route(
+          {
+            origin,
+            destination,
+            waypoints,
+            travelMode: google.maps.TravelMode.DRIVING,
+            provideRouteAlternatives: waypoints.length === 0,
+            optimizeWaypoints: false,
+          },
+          (result, status) => {
+            if (status === google.maps.DirectionsStatus.OK && result) {
+              // Use different route alternatives for different buses only if no waypoints
+              const selectedRouteIndex = waypoints.length === 0 && result.routes.length > 1
+                ? busIndex % result.routes.length 
+                : 0;
+
+              setDirections(result);
+              setRouteIndex(selectedRouteIndex);
+
+              // Get distance and duration from the selected route
+              const route = result.routes[selectedRouteIndex];
+              if (route && route.legs[0]) {
+                // Sum up all legs if there are waypoints
+                let totalDistance = 0;
+                let totalDuration = 0;
+                route.legs.forEach(leg => {
+                  totalDistance += leg.distance?.value || 0;
+                  totalDuration += leg.duration?.value || 0;
+                });
+
+                // Convert to readable format
+                const distanceKm = (totalDistance / 1000).toFixed(1);
+                const durationHours = Math.floor(totalDuration / 3600);
+                const durationMins = Math.floor((totalDuration % 3600) / 60);
+
+                setDistance(`${distanceKm} km`);
+                setDuration(
+                  durationHours > 0 
+                    ? `${durationHours} hour${durationHours > 1 ? 's' : ''} ${durationMins} mins`
+                    : `${durationMins} mins`
+                );
+              }
             }
-          }
-        },
-      );
+          },
+        );
+      }
+    } catch (error: any) {
+      console.error('Error calculating directions:', error);
+      setDirections(null);
+      setDistance("");
+      setDuration("");
     }
   }, [availableBuses, searchData.origin, searchData.destination, isLoaded, selectedBus]);
 
@@ -277,6 +290,8 @@ export function PassengerDashboard({
     lat: 7.8731,
     lng: 80.7718,
   };
+
+  
 
   const recentSearches = [
     { from: "Colombo", to: "Trincomalee", date: "Jan 15, 2026" },
