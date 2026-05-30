@@ -303,103 +303,156 @@ export const searchAvailableBuses = async (req: AuthRequest, res: Response) => {
   try {
     const { origin, destination, date, time } = req.query;
 
-    const query: any = {};
+    const normalizedOrigin = String(origin || '').trim();
+    const normalizedDestination = String(destination || '').trim();
+    const originRegex = normalizedOrigin ? new RegExp(normalizedOrigin, 'i') : null;
+    const destinationRegex = normalizedDestination ? new RegExp(normalizedDestination, 'i') : null;
 
-    if (origin) {
-      query.origin = { $regex: new RegExp(origin as string, 'i') };
-    }
-
-    if (destination) {
-      query.destination = { $regex: new RegExp(destination as string, 'i') };
-    }
-
-    let buses = await Bus.find(query).sort({ departureTime: 1 });
-
-    if (time && typeof time === 'string') {
-      const [hours, minutes] = time.split(':').map(Number);
-      if (!Number.isNaN(hours) && !Number.isNaN(minutes)) {
-        const selectedMinutes = hours * 60 + minutes;
-        const minMinutes = (selectedMinutes - 15 + 1440) % 1440;
-        const maxMinutes = (selectedMinutes + 15) % 1440;
-
-        buses = buses.filter((bus) => {
-          const [busHours, busMinutes] = (bus.departureTime || '').split(':').map(Number);
-          if (Number.isNaN(busHours) || Number.isNaN(busMinutes)) {
-            return false;
-          }
-
-          const busTotal = busHours * 60 + busMinutes;
-
-          if (minMinutes <= maxMinutes) {
-            return busTotal >= minMinutes && busTotal <= maxMinutes;
-          }
-
-          return busTotal >= minMinutes || busTotal <= maxMinutes;
-        });
+    const applyTimeFilter = (busList: any[]) => {
+      if (!(time && typeof time === 'string')) {
+        return busList;
       }
-    }
 
-    if (date && typeof date === 'string') {
-      const travelDate = new Date(date);
-      if (!isNaN(travelDate.getTime())) {
-        const day = travelDate.getDay();
-        const isWeekend = day === 0 || day === 6;
-        const targetDay = isWeekend ? 'weekends' : 'weekdays';
-        buses = buses.filter((bus) => bus.operatingDays === 'daily' || bus.operatingDays === targetDay);
+      const [hours, minutes] = time.split(':').map(Number);
+      if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+        return busList;
+      }
 
-        travelDate.setUTCHours(0, 0, 0, 0);
-        const nextDay = new Date(travelDate);
-        nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+      const selectedMinutes = hours * 60 + minutes;
+      const minMinutes = (selectedMinutes - 15 + 1440) % 1440;
+      const maxMinutes = (selectedMinutes + 15) % 1440;
 
-        const busNumbers = buses.map((bus) => (bus.busNumber || '').toUpperCase()).filter(Boolean);
-        if (busNumbers.length > 0) {
-          const unavailableRecords = await BusAvailability.find({
-            availability: false,
-            busNumber: { $in: busNumbers },
-            date: { $gte: travelDate, $lt: nextDay },
-          });
+      return busList.filter((bus) => {
+        const [busHours, busMinutes] = (bus.departureTime || '').split(':').map(Number);
+        if (Number.isNaN(busHours) || Number.isNaN(busMinutes)) {
+          return false;
+        }
 
-          const unavailableSet = new Set(unavailableRecords.map((record) => record.busNumber));
-          buses = buses.filter((bus) => !unavailableSet.has((bus.busNumber || '').toUpperCase()));
+        const busTotal = busHours * 60 + busMinutes;
+
+        if (minMinutes <= maxMinutes) {
+          return busTotal >= minMinutes && busTotal <= maxMinutes;
+        }
+
+        return busTotal >= minMinutes || busTotal <= maxMinutes;
+      });
+    };
+
+    const applyDateAndAvailabilityFilter = async (busList: any[]) => {
+      let filteredBuses = busList;
+
+      if (date && typeof date === 'string') {
+        const travelDate = new Date(date);
+        if (!isNaN(travelDate.getTime())) {
+          const day = travelDate.getDay();
+          const isWeekend = day === 0 || day === 6;
+          const targetDay = isWeekend ? 'weekends' : 'weekdays';
+          filteredBuses = filteredBuses.filter((bus) => bus.operatingDays === 'daily' || bus.operatingDays === targetDay);
+
+          travelDate.setUTCHours(0, 0, 0, 0);
+          const nextDay = new Date(travelDate);
+          nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+
+          const busNumbers = filteredBuses.map((bus) => (bus.busNumber || '').toUpperCase()).filter(Boolean);
+          if (busNumbers.length > 0) {
+            const unavailableRecords = await BusAvailability.find({
+              availability: false,
+              busNumber: { $in: busNumbers },
+              date: { $gte: travelDate, $lt: nextDay },
+            });
+
+            const unavailableSet = new Set(unavailableRecords.map((record) => record.busNumber));
+            filteredBuses = filteredBuses.filter((bus) => !unavailableSet.has((bus.busNumber || '').toUpperCase()));
+          }
         }
       }
-    }
 
-    const routeNumbers = Array.from(
-      new Set(
-        buses
-          .map((bus) => (bus.routeNumber || '').trim())
-          .filter(Boolean)
-      )
-    );
+      return filteredBuses;
+    };
 
-    const routeStopMap = new Map<string, string[]>();
-    if (routeNumbers.length > 0) {
-      const routes = await Route.find({ routeNumber: { $in: routeNumbers } }).lean();
-      routes.forEach((route) => {
-        const normalizedStops = (route.stops || [])
-          .map((stop) => String(stop || '').trim())
-          .filter(Boolean);
-        routeStopMap.set((route.routeNumber || '').trim(), normalizedStops);
-      });
-    }
+    const resolveStopsForBuses = async (busList: any[]) => {
+      const routeNumbers = Array.from(
+        new Set(
+          busList
+            .map((bus) => (bus.routeNumber || '').trim())
+            .filter(Boolean)
+        )
+      );
 
-    const busesWithResolvedStops = buses.map((bus) => {
-      const busObject = bus.toObject();
-      const routeStops = routeStopMap.get((bus.routeNumber || '').trim());
-
-      if (!routeStops || routeStops.length === 0) {
-        return busObject;
+      const routeStopMap = new Map<string, string[]>();
+      if (routeNumbers.length > 0) {
+        const routes = await Route.find({ routeNumber: { $in: routeNumbers } }).lean();
+        routes.forEach((route) => {
+          const normalizedStops = (route.stops || [])
+            .map((stop) => String(stop || '').trim())
+            .filter(Boolean);
+          routeStopMap.set((route.routeNumber || '').trim(), normalizedStops);
+        });
       }
 
-      return {
-        ...busObject,
-        stops: routeStops.map((city) => ({
-          name: city,
-          location: city,
-        })),
-      };
+      return busList.map((bus) => {
+        const busObject = bus.toObject();
+        const routeStops = routeStopMap.get((bus.routeNumber || '').trim());
+
+        if (!routeStops || routeStops.length === 0) {
+          return busObject;
+        }
+
+        return {
+          ...busObject,
+          stops: routeStops.map((city) => ({
+            name: city,
+            location: city,
+          })),
+        };
+      });
+    };
+
+    const originDestinationQuery: any = {};
+    if (originRegex) {
+      originDestinationQuery.origin = { $regex: originRegex };
+    }
+    if (destinationRegex) {
+      originDestinationQuery.destination = { $regex: destinationRegex };
+    }
+
+    const directCandidateBuses = await Bus.find(originDestinationQuery).sort({ departureTime: 1 });
+
+    const routeCandidateBuses: any[] = [];
+    if (originRegex && destinationRegex) {
+      const matchingRoutes = await Route.find({}).lean();
+      const matchingRouteNumbers = matchingRoutes
+        .filter((route) => {
+          const stops = (route.stops || []).map((stop) => String(stop || '').trim()).filter(Boolean);
+          const originIndex = stops.findIndex((stop) => originRegex.test(stop));
+          const destinationIndex = stops.findIndex((stop) => destinationRegex.test(stop));
+
+          return originIndex >= 0 && destinationIndex >= 0 && originIndex < destinationIndex;
+        })
+        .map((route) => String(route.routeNumber || '').trim())
+        .filter(Boolean);
+
+      if (matchingRouteNumbers.length > 0) {
+        const routeBuses = await Bus.find({ routeNumber: { $in: matchingRouteNumbers } }).sort({ departureTime: 1 });
+        routeCandidateBuses.push(...routeBuses);
+      }
+    }
+
+    const candidateBusMap = new Map<string, (typeof directCandidateBuses)[number]>();
+    [...directCandidateBuses, ...routeCandidateBuses].forEach((bus) => {
+      const key = String(bus._id);
+      if (!candidateBusMap.has(key)) {
+        candidateBusMap.set(key, bus);
+      }
     });
+
+    const mergedCandidates = Array.from(candidateBusMap.values()).sort((left, right) => {
+      return String(left.departureTime || '').localeCompare(String(right.departureTime || ''));
+    });
+
+    const buses = await applyDateAndAvailabilityFilter(applyTimeFilter(mergedCandidates));
+
+    const busesWithResolvedStops = await resolveStopsForBuses(buses);
 
     res.status(200).json({
       success: true,

@@ -69,6 +69,7 @@ export function PassengerDashboard({
     useState<google.maps.DirectionsResult | null>(null);
   const [distance, setDistance] = useState<string>("");
   const [duration, setDuration] = useState<string>("");
+  const [boardingTime, setBoardingTime] = useState<string>("");
   const [selectedBus, setSelectedBus] = useState<Bus | null>(null);
   const [routeIndex, setRouteIndex] = useState<number>(0);
   const [isSeatModalOpen, setIsSeatModalOpen] = useState(false);
@@ -131,90 +132,165 @@ export function PassengerDashboard({
 
   // Calculate route when buses are loaded or when a specific bus is selected
   useEffect(() => {
-    try {
-      if (
-        availableBuses.length > 0 &&
-        searchData.origin &&
-        searchData.destination &&
-        isLoaded
-      ) {
-        const busToDisplay = selectedBus || availableBuses[0];
-
-        if (!busToDisplay) return;
-
-        const directionsService = new google.maps.DirectionsService();
-
-        const busIndex = availableBuses.findIndex(b => b._id === busToDisplay._id);
-
-        // If bus has ordered stops, use first as origin, last as destination,
-        // and the intermediate stops as ordered waypoints so Directions goes
-        // through the listed main cities in order.
-        let origin = searchData.origin + ", Sri Lanka";
-        let destination = searchData.destination + ", Sri Lanka";
-        let waypoints: google.maps.DirectionsWaypoint[] = [];
-
-        if (busToDisplay.stops && busToDisplay.stops.length >= 2) {
-          const stopsArr = busToDisplay.stops as BusStop[];
-          const first = stopsArr[0];
-          const last = stopsArr[stopsArr.length - 1];
-          origin = (first.location || first.name || searchData.origin) + ", Sri Lanka";
-          destination = (last.location || last.name || searchData.destination) + ", Sri Lanka";
-          const mids = stopsArr.slice(1, stopsArr.length - 1);
-          waypoints = mids.map((stop) => ({ location: (stop.location || stop.name) + ", Sri Lanka", stopover: true }));
-        }
-
+    const getRouteMetrics = (
+      directionsService: google.maps.DirectionsService,
+      origin: string,
+      destination: string,
+      waypoints: google.maps.DirectionsWaypoint[] = [],
+      provideRouteAlternatives = false,
+    ) => {
+      return new Promise<{ distanceKm: string; durationText: string }>((resolve, reject) => {
         directionsService.route(
           {
             origin,
             destination,
             waypoints,
             travelMode: google.maps.TravelMode.DRIVING,
-            provideRouteAlternatives: waypoints.length === 0,
+            provideRouteAlternatives,
             optimizeWaypoints: false,
           },
           (result, status) => {
-            if (status === google.maps.DirectionsStatus.OK && result) {
-              // Use different route alternatives for different buses only if no waypoints
-              const selectedRouteIndex = waypoints.length === 0 && result.routes.length > 1
-                ? busIndex % result.routes.length 
-                : 0;
-
-              setDirections(result);
-              setRouteIndex(selectedRouteIndex);
-
-              // Get distance and duration from the selected route
-              const route = result.routes[selectedRouteIndex];
-              if (route && route.legs[0]) {
-                // Sum up all legs if there are waypoints
-                let totalDistance = 0;
-                let totalDuration = 0;
-                route.legs.forEach(leg => {
-                  totalDistance += leg.distance?.value || 0;
-                  totalDuration += leg.duration?.value || 0;
-                });
-
-                // Convert to readable format
-                const distanceKm = (totalDistance / 1000).toFixed(1);
-                const durationHours = Math.floor(totalDuration / 3600);
-                const durationMins = Math.floor((totalDuration % 3600) / 60);
-
-                setDistance(`${distanceKm} km`);
-                setDuration(
-                  durationHours > 0 
-                    ? `${durationHours} hour${durationHours > 1 ? 's' : ''} ${durationMins} mins`
-                    : `${durationMins} mins`
-                );
-              }
+            if (status !== google.maps.DirectionsStatus.OK || !result) {
+              reject(new Error(`Directions request failed: ${status}`));
+              return;
             }
+
+            const selectedRouteIndex = provideRouteAlternatives && result.routes.length > 1 ? 0 : 0;
+            const route = result.routes[selectedRouteIndex];
+
+            let totalDistance = 0;
+            let totalDuration = 0;
+            route.legs.forEach((leg) => {
+              totalDistance += leg.distance?.value || 0;
+              totalDuration += leg.duration?.value || 0;
+            });
+
+            const distanceKm = (totalDistance / 1000).toFixed(1);
+            const durationHours = Math.floor(totalDuration / 3600);
+            const durationMins = Math.floor((totalDuration % 3600) / 60);
+            const durationText =
+              durationHours > 0
+                ? `${durationHours} hour${durationHours > 1 ? 's' : ''} ${durationMins} mins`
+                : `${durationMins} mins`;
+
+            if (selectedRouteIndex !== 0) {
+              setRouteIndex(selectedRouteIndex);
+            }
+
+            resolve({ distanceKm, durationText });
           },
         );
+      });
+    };
+
+    const runDirections = async () => {
+      try {
+        if (
+          availableBuses.length > 0 &&
+          searchData.origin &&
+          searchData.destination &&
+          isLoaded
+        ) {
+          const busToDisplay = selectedBus || availableBuses[0];
+
+          if (!busToDisplay) return;
+
+          const directionsService = new google.maps.DirectionsService();
+          const busIndex = availableBuses.findIndex(b => b._id === busToDisplay._id);
+
+          const origin = searchData.origin + ", Sri Lanka";
+          const destination = searchData.destination + ", Sri Lanka";
+
+          let waypoints: google.maps.DirectionsWaypoint[] = [];
+          let boardingOrigin = busToDisplay.origin || searchData.origin;
+
+          if (busToDisplay.stops && busToDisplay.stops.length >= 2) {
+            const stopsArr = busToDisplay.stops as BusStop[];
+            const normalizedStops = stopsArr
+              .map((stop) => (stop.location || stop.name || "").trim())
+              .filter(Boolean);
+
+            const originIndex = normalizedStops.findIndex(
+              (stop) => stop.toLowerCase() === searchData.origin.trim().toLowerCase(),
+            );
+            const destinationIndex = normalizedStops.findIndex(
+              (stop) => stop.toLowerCase() === searchData.destination.trim().toLowerCase(),
+            );
+
+            if (originIndex >= 0 && destinationIndex >= 0 && originIndex < destinationIndex) {
+              const boardingPath = normalizedStops.slice(0, originIndex);
+              boardingOrigin = normalizedStops[0] || boardingOrigin;
+              const boardingWaypoints = boardingPath.slice(1).map((stop) => ({
+                location: stop + ", Sri Lanka",
+                stopover: true,
+              }));
+
+              const segmentStops = normalizedStops.slice(originIndex + 1, destinationIndex);
+              waypoints = segmentStops.map((stop) => ({
+                location: stop + ", Sri Lanka",
+                stopover: true,
+              }));
+
+              const boardingMetrics = await getRouteMetrics(
+                directionsService,
+                boardingOrigin + ", Sri Lanka",
+                origin,
+                boardingWaypoints,
+                false,
+              );
+
+              setBoardingTime(calculateArrivalTime(busToDisplay.departureTime, boardingMetrics.durationText));
+            } else {
+              setBoardingTime(busToDisplay.departureTime);
+            }
+          } else {
+            setBoardingTime(busToDisplay.departureTime);
+          }
+
+          const segmentMetrics = await getRouteMetrics(
+            directionsService,
+            origin,
+            destination,
+            waypoints,
+            waypoints.length === 0,
+          );
+
+          setDistance(segmentMetrics.distanceKm);
+          setDuration(segmentMetrics.durationText);
+
+          const routeResult = await new Promise<google.maps.DirectionsResult>((resolve, reject) => {
+            directionsService.route(
+              {
+                origin,
+                destination,
+                waypoints,
+                travelMode: google.maps.TravelMode.DRIVING,
+                provideRouteAlternatives: waypoints.length === 0,
+                optimizeWaypoints: false,
+              },
+              (result, status) => {
+                if (status === google.maps.DirectionsStatus.OK && result) {
+                  resolve(result);
+                } else {
+                  reject(new Error(`Directions request failed: ${status}`));
+                }
+              },
+            );
+          });
+
+          setDirections(routeResult);
+          setRouteIndex(waypoints.length === 0 && routeResult.routes.length > 1 ? busIndex % routeResult.routes.length : 0);
+        }
+      } catch (error: any) {
+        console.error('Error calculating directions:', error);
+        setDirections(null);
+        setDistance("");
+        setDuration("");
+        setBoardingTime("");
       }
-    } catch (error: any) {
-      console.error('Error calculating directions:', error);
-      setDirections(null);
-      setDistance("");
-      setDuration("");
-    }
+    };
+
+    void runDirections();
   }, [availableBuses, searchData.origin, searchData.destination, isLoaded, selectedBus]);
 
   const getDistanceInKm = (): number => {
@@ -687,7 +763,7 @@ export function PassengerDashboard({
                           <div className="flex items-center justify-between py-4 border-t border-b border-gray-100">
                             <div>
                               <p className="text-xl font-bold text-gray-900">
-                                {bus.departureTime}
+                                  {boardingTime || bus.departureTime}
                               </p>
                               <p className="text-sm text-gray-600">
                                 {searchData.origin}
@@ -706,7 +782,7 @@ export function PassengerDashboard({
                             <div className="text-right">
                               <p className="text-xl font-bold text-gray-900">
                                 {calculateArrivalTime(
-                                  bus.departureTime,
+                                  boardingTime || bus.departureTime,
                                   duration || "",
                                 )}
                               </p>
