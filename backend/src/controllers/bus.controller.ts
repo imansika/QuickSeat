@@ -5,6 +5,8 @@ import mongoose from 'mongoose';
 import { BusAvailability } from '../models/BusAvailability.model';
 import Route from '../models/Route.model';
 
+const GOOGLE_MAPS_API_KEY = process.env.VITE_GOOGLE_MAPS_API_KEY || '';
+
 // Register a new bus
 export const registerBus = async (req: AuthRequest, res: Response) => {
   try {
@@ -308,37 +310,134 @@ export const searchAvailableBuses = async (req: AuthRequest, res: Response) => {
     const originRegex = normalizedOrigin ? new RegExp(normalizedOrigin, 'i') : null;
     const destinationRegex = normalizedDestination ? new RegExp(normalizedDestination, 'i') : null;
 
-    const applyTimeFilter = (busList: any[]) => {
-      if (!(time && typeof time === 'string')) {
-        return busList;
-      }
+    // ─── Helpers ────────────────────────────────────────────────────────────────
 
-      const [hours, minutes] = time.split(':').map(Number);
-      if (Number.isNaN(hours) || Number.isNaN(minutes)) {
-        return busList;
-      }
+    const normalizeText = (value: string) => String(value || '').trim().toLowerCase();
 
-      const selectedMinutes = hours * 60 + minutes;
-      const minMinutes = (selectedMinutes - 15 + 1440) % 1440;
-      const maxMinutes = (selectedMinutes + 15) % 1440;
-
-      return busList.filter((bus) => {
-        const [busHours, busMinutes] = (bus.departureTime || '').split(':').map(Number);
-        if (Number.isNaN(busHours) || Number.isNaN(busMinutes)) {
-          return false;
-        }
-
-        const busTotal = busHours * 60 + busMinutes;
-
-        if (minMinutes <= maxMinutes) {
-          return busTotal >= minMinutes && busTotal <= maxMinutes;
-        }
-
-        return busTotal >= minMinutes || busTotal <= maxMinutes;
-      });
+    const matchesPlace = (value: string, query: string) => {
+      const normalizedValue = normalizeText(value);
+      const normalizedQuery = normalizeText(query);
+      if (!normalizedValue || !normalizedQuery) return false;
+      return (
+        normalizedValue === normalizedQuery ||
+        normalizedValue.includes(normalizedQuery) ||
+        normalizedQuery.includes(normalizedValue)
+      );
     };
 
-    const applyDateAndAvailabilityFilter = async (busList: any[]) => {
+    const parseTimeToMinutes = (value: string): number | null => {
+      const [hours, minutes] = String(value || '').split(':').map(Number);
+      if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+      return hours * 60 + minutes;
+    };
+
+    const formatMinutesToTime = (minutes: number): string => {
+      const normalizedMinutes = ((minutes % 1440) + 1440) % 1440;
+      const hours = Math.floor(normalizedMinutes / 60);
+      const mins = normalizedMinutes % 60;
+      return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+    };
+
+    const isWithinTimeWindow = (candidateTime: string, searchTime: string): boolean => {
+      const candidateMinutes = parseTimeToMinutes(candidateTime);
+      const searchMinutes = parseTimeToMinutes(searchTime);
+      if (candidateMinutes === null || searchMinutes === null) return false;
+
+      const minMinutes = (searchMinutes - 30 + 1440) % 1440;
+      const maxMinutes = (searchMinutes + 30) % 1440;
+
+      if (minMinutes <= maxMinutes) {
+        return candidateMinutes >= minMinutes && candidateMinutes <= maxMinutes;
+      }
+      // Wraps midnight
+      return candidateMinutes >= minMinutes || candidateMinutes <= maxMinutes;
+    };
+
+    // ─── Google Maps helpers ─────────────────────────────────────────────────────
+
+    const buildDirectionsUrl = (
+      originPlace: string,
+      destinationPlace: string,
+      waypoints: string[],
+    ): string | null => {
+      if (!GOOGLE_MAPS_API_KEY) return null;
+
+      const params = new URLSearchParams();
+      params.set('origin', originPlace);
+      params.set('destination', destinationPlace);
+      params.set('mode', 'driving');
+      params.set('key', GOOGLE_MAPS_API_KEY);
+      if (waypoints.length > 0) {
+        params.set('waypoints', waypoints.join('|'));
+      }
+
+      return `https://maps.googleapis.com/maps/api/directions/json?${params.toString()}`;
+    };
+
+    const fetchRouteDurationMinutes = async (
+  originPlace: string,
+  destinationPlace: string,
+  waypoints: string[] = [],
+): Promise<number | null> => {
+      const directionsUrl = buildDirectionsUrl(originPlace, destinationPlace, waypoints);
+
+      if (!directionsUrl) return null;
+
+      try {
+        const response = await fetch(directionsUrl);
+
+        if (!response.ok) return null;
+
+        const data = await response.json();
+
+        const legs = data?.routes?.[0]?.legs;
+        if (!Array.isArray(legs) || legs.length === 0) return null;
+
+        const totalSeconds = legs.reduce((sum: number, leg: any) => {
+          return sum + (leg?.duration?.value || 0);
+        }, 0);
+
+        return totalSeconds ? Math.round(totalSeconds / 60) : null;
+      } catch (err) {
+        return null;
+      }
+};
+
+    /**
+     * Estimates the time a bus reaches the boarding stop (origin search param).
+     * Returns null if the calculation cannot be completed — callers should
+     * fall back to the bus's raw departureTime in that case.
+     */
+    const estimateRouteBoardingTime = async (
+      bus: any,
+      routeStops: string[],
+    ): Promise<string | null> => {
+      const departureMinutes = parseTimeToMinutes(bus.departureTime);
+      if (departureMinutes === null) return null;
+
+      const boardingIndex = routeStops.findIndex((stop) =>
+        matchesPlace(stop, normalizedOrigin),
+      );
+      if (boardingIndex <= 0) {
+        // boardingIndex === 0 means the origin IS the first stop — no travel time needed,
+        // just use departureTime directly (return null so caller uses departureTime fallback).
+        return boardingIndex === 0 ? null : null;
+      }
+
+      const firstStop = routeStops[0];
+      const boardingStop = routeStops[boardingIndex];
+      if (!firstStop || !boardingStop) return null;
+
+      const waypoints = routeStops.slice(1, boardingIndex);
+      const travelMinutes = await fetchRouteDurationMinutes(firstStop, boardingStop, waypoints);
+      if (travelMinutes === null) return null;
+
+      return formatMinutesToTime(departureMinutes + travelMinutes);
+    };
+
+    // ─── Date + availability filter ──────────────────────────────────────────────
+
+    const applyDateAndAvailabilityFilter = async (busList: any[]): Promise<any[]> => {
       let filteredBuses = busList;
 
       if (date && typeof date === 'string') {
@@ -347,13 +446,19 @@ export const searchAvailableBuses = async (req: AuthRequest, res: Response) => {
           const day = travelDate.getDay();
           const isWeekend = day === 0 || day === 6;
           const targetDay = isWeekend ? 'weekends' : 'weekdays';
-          filteredBuses = filteredBuses.filter((bus) => bus.operatingDays === 'daily' || bus.operatingDays === targetDay);
+
+          filteredBuses = filteredBuses.filter(
+            (bus) => bus.operatingDays === 'daily' || bus.operatingDays === targetDay,
+          );
 
           travelDate.setUTCHours(0, 0, 0, 0);
           const nextDay = new Date(travelDate);
           nextDay.setUTCDate(nextDay.getUTCDate() + 1);
 
-          const busNumbers = filteredBuses.map((bus) => (bus.busNumber || '').toUpperCase()).filter(Boolean);
+          const busNumbers = filteredBuses
+            .map((bus) => (bus.busNumber || '').toUpperCase())
+            .filter(Boolean);
+
           if (busNumbers.length > 0) {
             const unavailableRecords = await BusAvailability.find({
               availability: false,
@@ -361,8 +466,13 @@ export const searchAvailableBuses = async (req: AuthRequest, res: Response) => {
               date: { $gte: travelDate, $lt: nextDay },
             });
 
-            const unavailableSet = new Set(unavailableRecords.map((record) => record.busNumber));
-            filteredBuses = filteredBuses.filter((bus) => !unavailableSet.has((bus.busNumber || '').toUpperCase()));
+            const unavailableSet = new Set(
+              unavailableRecords.map((record) => record.busNumber),
+            );
+
+            filteredBuses = filteredBuses.filter(
+              (bus) => !unavailableSet.has((bus.busNumber || '').toUpperCase()),
+            );
           }
         }
       }
@@ -370,13 +480,15 @@ export const searchAvailableBuses = async (req: AuthRequest, res: Response) => {
       return filteredBuses;
     };
 
-    const resolveStopsForBuses = async (busList: any[]) => {
+    // ─── Resolve stops from route definitions ────────────────────────────────────
+
+    const resolveStopsForBuses = async (busList: any[]): Promise<any[]> => {
       const routeNumbers = Array.from(
         new Set(
           busList
             .map((bus) => (bus.routeNumber || '').trim())
-            .filter(Boolean)
-        )
+            .filter(Boolean),
+        ),
       );
 
       const routeStopMap = new Map<string, string[]>();
@@ -391,66 +503,142 @@ export const searchAvailableBuses = async (req: AuthRequest, res: Response) => {
       }
 
       return busList.map((bus) => {
-        const busObject = bus.toObject();
-        const routeStops = routeStopMap.get((bus.routeNumber || '').trim());
+        // Guard: bus may already be a plain object at this point
+        const busObject = typeof bus.toObject === 'function' ? bus.toObject() : { ...bus };
+        const routeStops = routeStopMap.get((busObject.routeNumber || '').trim());
 
-        if (!routeStops || routeStops.length === 0) {
-          return busObject;
-        }
+        if (!routeStops || routeStops.length === 0) return busObject;
+
+        const originalStops = Array.isArray(busObject.stops) ? busObject.stops : [];
+        const originalStopMap = new Map<string, string>();
+        originalStops.forEach((stop: any) => {
+          const stopName = normalizeText(stop?.location || stop?.name || '');
+          const stopArrivalTime = String(stop?.arrivalTime || '').trim();
+          if (stopName && stopArrivalTime) {
+            originalStopMap.set(stopName, stopArrivalTime);
+          }
+        });
 
         return {
           ...busObject,
           stops: routeStops.map((city) => ({
             name: city,
             location: city,
+            arrivalTime: originalStopMap.get(normalizeText(city)) || undefined,
           })),
         };
       });
     };
 
+    // ─── 1. Direct buses (origin → destination on bus record itself) ─────────────
+
     const originDestinationQuery: any = {};
-    if (originRegex) {
-      originDestinationQuery.origin = { $regex: originRegex };
-    }
-    if (destinationRegex) {
-      originDestinationQuery.destination = { $regex: destinationRegex };
-    }
+    if (originRegex) originDestinationQuery.origin = { $regex: originRegex };
+    if (destinationRegex) originDestinationQuery.destination = { $regex: destinationRegex };
 
     const directCandidateBuses = await Bus.find(originDestinationQuery).sort({ departureTime: 1 });
 
-    const routeCandidateBuses: any[] = [];
+    // ─── 2. Route-based buses (origin + destination appear in route stops) ───────
+
+    const routeCandidateBuses: Array<{ bus: any; routeStops: string[] }> = [];
+
     if (originRegex && destinationRegex) {
-      const matchingRoutes = await Route.find({}).lean();
-      const matchingRouteNumbers = matchingRoutes
+      const allRoutes = await Route.find({}).lean();
+
+      const matchingRouteNumbers = allRoutes
         .filter((route) => {
-          const stops = (route.stops || []).map((stop) => String(stop || '').trim()).filter(Boolean);
+          const stops = (route.stops || [])
+            .map((stop) => String(stop || '').trim())
+            .filter(Boolean);
           const originIndex = stops.findIndex((stop) => originRegex.test(stop));
           const destinationIndex = stops.findIndex((stop) => destinationRegex.test(stop));
-
+          // Both stops must exist and origin must come before destination
           return originIndex >= 0 && destinationIndex >= 0 && originIndex < destinationIndex;
         })
         .map((route) => String(route.routeNumber || '').trim())
         .filter(Boolean);
 
       if (matchingRouteNumbers.length > 0) {
-        const routeBuses = await Bus.find({ routeNumber: { $in: matchingRouteNumbers } }).sort({ departureTime: 1 });
-        routeCandidateBuses.push(...routeBuses);
+        const routeStopMap = new Map<string, string[]>();
+        allRoutes.forEach((route) => {
+          const routeNumber = String(route.routeNumber || '').trim();
+          const stops = (route.stops || [])
+            .map((stop) => String(stop || '').trim())
+            .filter(Boolean);
+          if (routeNumber) routeStopMap.set(routeNumber, stops);
+        });
+
+        const routeBuses = await Bus.find({
+          routeNumber: { $in: matchingRouteNumbers },
+        }).sort({ departureTime: 1 });
+
+        routeBuses.forEach((bus) => {
+          const routeStops = routeStopMap.get(String(bus.routeNumber || '').trim()) || [];
+          routeCandidateBuses.push({ bus, routeStops });
+        });
       }
     }
 
-    const candidateBusMap = new Map<string, (typeof directCandidateBuses)[number]>();
-    [...directCandidateBuses, ...routeCandidateBuses].forEach((bus) => {
-      const key = String(bus._id);
-      if (!candidateBusMap.has(key)) {
-        candidateBusMap.set(key, bus);
-      }
+    // ─── 3. Build candidate entries with searchTime ───────────────────────────────
+
+    const candidateEntries: Array<{ bus: any; searchTime: string }> = [];
+
+    // Direct buses use their departureTime as-is
+    directCandidateBuses.forEach((bus) => {
+      candidateEntries.push({
+        bus,
+        searchTime: String(bus.departureTime || ''),
+      });
     });
 
-    const mergedCandidates = Array.from(candidateBusMap.values()).sort((left, right) => {
-      return String(left.departureTime || '').localeCompare(String(right.departureTime || ''));
+
+    // Route buses: estimate boarding time in parallel, fall back to departureTime on failure
+    await Promise.all(
+      routeCandidateBuses.map(async ({ bus, routeStops }) => {
+        const boardingTime = await estimateRouteBoardingTime(bus.toObject(), routeStops);
+        candidateEntries.push({
+          bus,
+          // If estimation fails for any reason, fall back to raw departureTime
+          // so the bus is never silently dropped from results
+          searchTime: boardingTime ?? String(bus.departureTime || ''),
+        });
+      }),
+    );
+
+    // ─── 4. Deduplicate by bus _id (prefer route entry — more accurate time) ─────
+
+    const candidateBusMap = new Map<string, { bus: any; searchTime: string }>();
+    candidateEntries.forEach((entry) => {
+      const key = String(entry.bus._id);
+      // Always overwrite so the route-based boarding time wins over departureTime
+      candidateBusMap.set(key, entry);
     });
 
-    const buses = await applyDateAndAvailabilityFilter(applyTimeFilter(mergedCandidates));
+    // ─── 5. Sort by searchTime, apply time window filter ─────────────────────────
+
+    const mergedCandidates = Array.from(candidateBusMap.values()).sort((a, b) =>
+      String(a.searchTime || '').localeCompare(String(b.searchTime || '')),
+    );
+
+
+
+    const busesAfterTimeFilter =
+      typeof time === 'string' && time
+        ? mergedCandidates.filter((entry) => isWithinTimeWindow(entry.searchTime, time))
+        : mergedCandidates;
+
+    // Also log which ones were dropped by time filter
+    const droppedByTime = mergedCandidates.filter(
+      (entry) => !busesAfterTimeFilter.includes(entry),
+    );
+
+    // ─── 6. Date + availability filter, then resolve stops ───────────────────────
+
+    const buses = await applyDateAndAvailabilityFilter(
+      busesAfterTimeFilter.map((entry) => entry.bus),
+    );
+
+    
 
     const busesWithResolvedStops = await resolveStopsForBuses(buses);
 
