@@ -4,23 +4,53 @@ import dotenv from "dotenv";
 import cors from "cors";
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
+import busRoutes from "./routes/bus.routes";
+import availabilityRoutes from "./routes/availability.routes";
+import bookingRoutes from "./routes/booking.routes";
+import paymentRoutes from "./routes/payment.routes";
+import reportRoutes from "./routes/reportRoutes";
+import ticketRoutes from "./routes/ticket.routes";
+import routeRoutes from "./routes/route.routes";
 
 dotenv.config();
 
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors()); // REQUIRED: Allows frontend (port 5173) to talk to backend (port 5000)
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+  next();
+});
 
-// Database connection
-mongoose.connect(process.env.MONGO_URI as string)
-  .then(() => console.log("MongoDB connected"))
-  .catch(err => console.error(err));
+// Database connection with proper configuration
+const mongoUri = process.env.MONGO_URI;
+
+if (!mongoUri) {
+  throw new Error('MONGO_URI is not configured');
+}
+
+// Handle MongoDB connection events
+mongoose.connection.on('disconnected', () => {
+  console.log('MongoDB disconnected');
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('MongoDB error:', err.message);
+});
 
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api', userRoutes);
+app.use('/api', busRoutes);
+app.use('/api', availabilityRoutes);
+app.use('/api', bookingRoutes);
+app.use('/api', paymentRoutes);
+app.use('/api', reportRoutes);
+app.use('/api', ticketRoutes);
+app.use('/api', routeRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -28,4 +58,21 @@ app.get('/health', (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+async function startServer() {
+  try {
+    await mongoose.connect(mongoUri as string, {
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+    });
+
+    console.log('MongoDB connected successfully');
+
+    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  } catch (err: any) {
+    console.error('MongoDB connection error:', err.message);
+    process.exit(1);
+  }
+}
+
+void startServer();

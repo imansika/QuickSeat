@@ -1,7 +1,8 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
 import { auth } from '../firebase';
-import type { User, UserProfile, CreateUserData, UpdateUserData } from '../types/user';
+import type {UserProfile, CreateUserData, UpdateUserData } from '../types/user';
 import { authService } from '../services/auth.service';
 import { userService } from '../services/user.service';
 
@@ -11,6 +12,7 @@ interface AuthContextType {
   loading: boolean;
   error: string | null;
   signUp: (userData: CreateUserData) => Promise<void>;
+  registerOperator: (userData: CreateUserData) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signInWithFacebook: () => Promise<void>;
@@ -48,8 +50,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       const profile = await userService.getUserProfile(uid);
       setUserProfile(profile);
-    } catch (err: any) {
-      console.error('Failed to load user profile:', err.message);
+    } catch (err: unknown) {
+      console.error('Failed to load user profile:', err instanceof Error ? err.message : String(err));
       // Profile might not exist yet, which is okay
     }
   };
@@ -78,6 +80,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setLoading(true);
       
       const user = await authService.signUp(userData);
+      const authToken = await user.getIdToken(true);
       
       // Create user profile in database
       const profile = await userService.createUserProfile({
@@ -85,11 +88,40 @@ export function AuthProvider({ children }: AuthProviderProps) {
         email: userData.email,
         fullName: userData.fullName,
         phone: userData.phone,
+        role: userData.role,
+        authToken,
       });
       
       setUserProfile(profile);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Register operator using the same Firebase-first flow as user signup
+  const registerOperator = async (userData: CreateUserData) => {
+    try {
+      setError(null);
+      setLoading(true);
+
+      const profile = await userService.createOperatorAccount({
+        email: userData.email,
+        password: userData.password,
+        fullName: userData.fullName,
+        phone: userData.phone,
+      });
+
+      // Keep the current operator session intact; only the new operator is created.
+      if (profile && currentUser) {
+        await loadUserProfile(currentUser.uid);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg);
       throw err;
     } finally {
       setLoading(false);
@@ -102,73 +134,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setError(null);
       setLoading(true);
       await authService.signIn(email, password);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg);
       throw err;
     } finally {
       setLoading(false);
     }
   };
 
-  // Sign in with Google
-  const signInWithGoogle = async () => {
-    try {
-      setError(null);
-      setLoading(true);
-      
-      const user = await authService.signInWithGoogle();
-      
-      // Try to load profile, create if doesn't exist
-      try {
-        const profile = await userService.getUserProfile(user.uid);
-        setUserProfile(profile);
-      } catch {
-        // Create profile if it doesn't exist
-        const profile = await userService.createUserProfile({
-          uid: user.uid,
-          email: user.email || '',
-          fullName: user.displayName || '',
-          phone: user.phoneNumber || '',
-        });
-        setUserProfile(profile);
-      }
-    } catch (err: any) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Sign in with Facebook
-  const signInWithFacebook = async () => {
-    try {
-      setError(null);
-      setLoading(true);
-      
-      const user = await authService.signInWithFacebook();
-      
-      // Try to load profile, create if doesn't exist
-      try {
-        const profile = await userService.getUserProfile(user.uid);
-        setUserProfile(profile);
-      } catch {
-        // Create profile if it doesn't exist
-        const profile = await userService.createUserProfile({
-          uid: user.uid,
-          email: user.email || '',
-          fullName: user.displayName || '',
-          phone: user.phoneNumber || '',
-        });
-        setUserProfile(profile);
-      }
-    } catch (err: any) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
+ 
 
   // Sign out
   const signOut = async () => {
@@ -176,22 +151,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setError(null);
       await authService.signOut();
       setUserProfile(null);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg);
       throw err;
     }
   };
 
-  // Reset password
-  const resetPassword = async (email: string) => {
-    try {
-      setError(null);
-      await authService.resetPassword(email);
-    } catch (err: any) {
-      setError(err.message);
-      throw err;
-    }
-  };
+  
 
   // Update profile
   const updateProfile = async (updateData: UpdateUserData) => {
@@ -215,8 +182,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       );
       
       setUserProfile(updatedProfile);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg);
       throw err;
     } finally {
       setLoading(false);
@@ -229,8 +197,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setError(null);
       setLoading(true);
       await authService.updateUserEmail(newEmail);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg);
       throw err;
     } finally {
       setLoading(false);
@@ -243,8 +212,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setError(null);
       setLoading(true);
       await authService.updateUserPassword(newPassword);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg);
       throw err;
     } finally {
       setLoading(false);
@@ -268,8 +238,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       await currentUser.delete();
       
       setUserProfile(null);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg);
       throw err;
     } finally {
       setLoading(false);
@@ -287,11 +258,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     loading,
     error,
     signUp,
+    registerOperator,
     signIn,
-    signInWithGoogle,
-    signInWithFacebook,
     signOut,
-    resetPassword,
     updateProfile,
     updateEmail,
     updatePassword,

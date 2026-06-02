@@ -2,13 +2,9 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
-  sendPasswordResetEmail,
   updateProfile,
   updateEmail,
   updatePassword,
-  GoogleAuthProvider,
-  FacebookAuthProvider,
-  signInWithPopup,
   type User as FirebaseUser,
 } from 'firebase/auth';
 import { auth } from '../firebase';
@@ -20,71 +16,48 @@ class AuthService {
     try {
       const userCredential = await createUserWithEmailAndPassword(
         auth,
-        userData.email,
+        userData.email.trim(),
         userData.password
       );
 
-      // Update user profile with display name
       await updateProfile(userCredential.user, {
         displayName: userData.fullName,
       });
 
       return userCredential.user;
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to create account');
+    } catch (error: unknown) {
+      const authError = error as { code?: string; message?: string };
+      const enhancedError = new Error(authError?.message || 'Failed to create account');
+      (enhancedError as Error & { code?: string }).code = authError?.code;
+      throw enhancedError;
     }
   }
 
-  // Sign in with email and password
+  // email and password
   async signIn(email: string, password: string): Promise<FirebaseUser> {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       return userCredential.user;
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to sign in');
+    } catch (error: unknown) {
+      const authError = error as { code?: string; message?: string };
+      const enhancedError = new Error(authError?.message || 'Failed to sign in');
+      (enhancedError as Error & { code?: string }).code = authError?.code;
+      throw enhancedError;
     }
   }
 
-  // Sign in with Google
-  async signInWithGoogle(): Promise<FirebaseUser> {
-    try {
-      const provider = new GoogleAuthProvider();
-      const userCredential = await signInWithPopup(auth, provider);
-      return userCredential.user;
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to sign in with Google');
-    }
-  }
-
-  // Sign in with Facebook
-  async signInWithFacebook(): Promise<FirebaseUser> {
-    try {
-      const provider = new FacebookAuthProvider();
-      const userCredential = await signInWithPopup(auth, provider);
-      return userCredential.user;
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to sign in with Facebook');
-    }
-  }
 
   // Sign out
   async signOut(): Promise<void> {
     try {
       await signOut(auth);
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to sign out');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(message || 'Failed to sign out');
     }
   }
 
-  // Send password reset email
-  async resetPassword(email: string): Promise<void> {
-    try {
-      await sendPasswordResetEmail(auth, email);
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to send password reset email');
-    }
-  }
-
+  
   // Update user profile
   async updateUserProfile(displayName: string, photoURL?: string): Promise<void> {
     try {
@@ -96,8 +69,9 @@ class AuthService {
         displayName,
         ...(photoURL && { photoURL }),
       });
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to update profile');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(message || 'Failed to update profile');
     }
   }
 
@@ -109,8 +83,9 @@ class AuthService {
       }
 
       await updateEmail(auth.currentUser, newEmail);
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to update email');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(message || 'Failed to update email');
     }
   }
 
@@ -122,8 +97,9 @@ class AuthService {
       }
 
       await updatePassword(auth.currentUser, newPassword);
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to update password');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(message || 'Failed to update password');
     }
   }
 
@@ -132,15 +108,29 @@ class AuthService {
     return auth.currentUser;
   }
 
+  async deleteCurrentUser(): Promise<void> {
+    try {
+      if (!auth.currentUser) {
+        return;
+      }
+
+      await auth.currentUser.delete();
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(message || 'Failed to delete current user');
+    }
+  }
+
   // Get ID token
-  async getIdToken(): Promise<string | null> {
+  async getIdToken(forceRefresh = false): Promise<string | null> {
     try {
       if (!auth.currentUser) {
         return null;
       }
-      return await auth.currentUser.getIdToken();
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to get ID token');
+      return await auth.currentUser.getIdToken(forceRefresh);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(message || 'Failed to get ID token');
     }
   }
 }

@@ -1,0 +1,1 @@
+export { PaymentFailed } from './PaymentFailed';

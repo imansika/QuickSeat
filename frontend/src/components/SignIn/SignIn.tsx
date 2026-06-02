@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Bus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface SignInProps {
@@ -7,7 +8,8 @@ interface SignInProps {
 }
 
 export function SignIn({ onSignUp }: SignInProps) {
-  const { signIn, signInWithGoogle, signInWithFacebook, error, clearError } = useAuth();
+  const navigate = useNavigate();
+  const { signIn, signInWithGoogle, signInWithFacebook, userProfile, error, clearError } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -22,9 +24,14 @@ export function SignIn({ onSignUp }: SignInProps) {
     try {
       setLoading(true);
       await signIn(email, password);
-      // Sign in successful - user will be redirected by AuthContext
-    } catch (err: any) {
-      setLocalError(err.message || 'Failed to sign in');
+      // Wait a bit for userProfile to load, then redirect based on role
+      setTimeout(() => {
+        const dashboardRoute = userProfile?.role === 'operator' ? '/operator' : '/dashboard';
+        navigate(dashboardRoute);
+      }, 500);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setLocalError(msg || 'Failed to sign in');
     } finally {
       setLoading(false);
     }
@@ -36,8 +43,13 @@ export function SignIn({ onSignUp }: SignInProps) {
       setLocalError('');
       clearError();
       await signInWithGoogle();
-    } catch (err: any) {
-      setLocalError(err.message || 'Failed to sign in with Google');
+      setTimeout(() => {
+        const dashboardRoute = userProfile?.role === 'operator' ? '/operator' : '/dashboard';
+        navigate(dashboardRoute);
+      }, 500);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setLocalError(msg || 'Failed to sign in with Google');
     } finally {
       setLoading(false);
     }
@@ -49,8 +61,13 @@ export function SignIn({ onSignUp }: SignInProps) {
       setLocalError('');
       clearError();
       await signInWithFacebook();
-    } catch (err: any) {
-      setLocalError(err.message || 'Failed to sign in with Facebook');
+      setTimeout(() => {
+        const dashboardRoute = userProfile?.role === 'operator' ? '/operator' : '/dashboard';
+        navigate(dashboardRoute);
+      }, 500);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setLocalError(msg || 'Failed to sign in with Facebook');
     } finally {
       setLoading(false);
     }

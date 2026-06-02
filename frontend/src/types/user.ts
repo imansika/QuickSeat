@@ -26,6 +26,14 @@ export interface CreateUserData {
   password: string;
   fullName: string;
   phone: string;
+  role?: 'user' | 'operator' | 'admin';
+}
+
+export interface CreateOperatorData {
+  email: string;
+  password: string;
+  fullName: string;
+  phone: string;
 }
 
 export interface UpdateUserData {
