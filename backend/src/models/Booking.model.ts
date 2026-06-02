@@ -4,6 +4,9 @@ export interface IBooking extends Document {
   bookingId: string;
   userId: string;
   busNumber: string;
+  origin: string;
+  destination: string;
+  time: string;
   seats: string[];
   journeyDate: Date;
   totalAmount: number;
@@ -30,6 +33,21 @@ const BookingSchema = new Schema<IBooking>(
       required: true,
       trim: true,
       uppercase: true,
+    },
+    origin: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    destination: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    time: {
+      type: String,
+      required: true,
+      trim: true,
     },
     seats: {
       type: [String],

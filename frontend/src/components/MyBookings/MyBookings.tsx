@@ -1,13 +1,19 @@
 import { useEffect, useState } from 'react';
-import { Bus, Calendar, ChevronDown, Clock, LogOut, Settings, Ticket as TicketIcon, Trash2, User } from 'lucide-react';
+import { AlertCircle, Bus, Calendar, ChevronDown, Clock, LogOut, Settings, Ticket as TicketIcon, Trash2, User, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { getMyPastBookings, getMyUpcomingBookings } from '../../services/booking.service';
+import { searchAvailableBuses } from '../../services/bus.service';
+import { SeatSelectionModal } from '../SeatSelection/SeatSelectionModal';
+import type { Bus as BusType } from '../../types/bus';
 
 interface Booking {
   _id?: string;
   bookingId: string;
   busNumber: string;
+  origin?: string;
+  destination?: string;
+  time?: string;
   seats: string[];
   journeyDate: string;
   totalAmount: number;
@@ -46,6 +52,40 @@ const formatDate = (dateValue: string) =>
     year: 'numeric',
   });
 
+const toDateInputValue = (dateValue: Date | string) => {
+  const date = typeof dateValue === 'string' ? new Date(dateValue) : dateValue;
+  const normalizedDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return normalizedDate.toISOString().slice(0, 10);
+};
+
+const getMinutesFromTime = (timeValue: string) => {
+  const [hours, minutes] = String(timeValue || '').split(':').map(Number);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+    return null;
+  }
+
+  return hours * 60 + minutes;
+};
+
+const formatDuration = (departureTime: string, arrivalTime: string) => {
+  const departureMinutes = getMinutesFromTime(departureTime);
+  const arrivalMinutes = getMinutesFromTime(arrivalTime);
+
+  if (departureMinutes === null || arrivalMinutes === null) {
+    return 'N/A';
+  }
+
+  const totalMinutes = (arrivalMinutes - departureMinutes + 1440) % 1440;
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (hours === 0) {
+    return `${minutes} mins`;
+  }
+
+  return `${hours} hour${hours > 1 ? 's' : ''}${minutes > 0 ? ` ${minutes} mins` : ''}`;
+};
+
 const isSameDay = (leftValue: string, rightValue: Date) => {
   const left = new Date(leftValue);
   return left.toDateString() === rightValue.toDateString();
@@ -61,6 +101,13 @@ export function MyBookings() {
   const [pastPage, setPastPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isRebookDialogOpen, setIsRebookDialogOpen] = useState(false);
+  const [isRebookSearching, setIsRebookSearching] = useState(false);
+  const [rebookError, setRebookError] = useState('');
+  const [rebookDate, setRebookDate] = useState('');
+  const [activeRebookBooking, setActiveRebookBooking] = useState<Booking | null>(null);
+  const [activeRebookBus, setActiveRebookBus] = useState<BusType | null>(null);
+  const [isSeatModalOpen, setIsSeatModalOpen] = useState(false);
 
   useEffect(() => {
     let isActive = true;
@@ -114,6 +161,62 @@ export function MyBookings() {
     await signOut();
     navigate('/signin');
   };
+
+  const openRebookDialog = (booking: Booking) => {
+    const bookingDate = new Date(booking.journeyDate);
+    const fallbackDate = bookingDate.getTime() > Date.now() ? bookingDate : new Date();
+
+    setActiveRebookBooking(booking);
+    setRebookDate(toDateInputValue(fallbackDate));
+    setRebookError('');
+    setIsSeatModalOpen(false);
+    setIsRebookDialogOpen(true);
+  };
+
+  const closeRebookDialog = () => {
+    setIsRebookDialogOpen(false);
+    setIsRebookSearching(false);
+    setRebookError('');
+    setRebookDate('');
+    setActiveRebookBooking(null);
+  };
+
+  const handleConfirmRebook = async () => {
+    if (!activeRebookBooking) {
+      return;
+    }
+
+    if (!rebookDate) {
+      setRebookError('Please select a journey date');
+      return;
+    }
+
+    try {
+      setIsRebookSearching(true);
+      setRebookError('');
+
+      const response = await searchAvailableBuses({ date: rebookDate });
+      const availableBuses = (response.data ?? []) as BusType[];
+      const matchedBus = availableBuses.find(
+        (bus) => bus.busNumber.toUpperCase() === activeRebookBooking.busNumber.toUpperCase()
+      );
+
+      if (!matchedBus) {
+        setRebookError('This bus is not available on the selected date. Please choose another date.');
+        return;
+      }
+
+      setActiveRebookBus(matchedBus);
+      setIsRebookDialogOpen(false);
+      setIsSeatModalOpen(true);
+    } catch (searchError) {
+      const message = searchError instanceof Error ? searchError.message : String(searchError);
+      setRebookError(message || 'Failed to check bus availability');
+    } finally {
+      setIsRebookSearching(false);
+    }
+  };
+
   const handleDeletePastBooking = (bookingId: string) => {
     const existingHiddenIds = readHiddenPastBookingIds(currentUser?.uid);
     if (!existingHiddenIds.includes(bookingId)) {
@@ -134,6 +237,17 @@ export function MyBookings() {
       default:
         return 'bg-slate-100 text-slate-700 border-slate-300';
     }
+  };
+
+  const getRebookPrice = () => {
+    if (!activeRebookBooking || activeRebookBooking.seats.length === 0) {
+      return 0;
+    }
+
+    return Math.max(
+      1,
+      Math.round(Math.max(0, activeRebookBooking.totalAmount - 50) / activeRebookBooking.seats.length)
+    );
   };
 
   const upcomingTotalPages = Math.max(1, Math.ceil(upcomingBookings.length / ITEMS_PER_PAGE));
@@ -234,7 +348,7 @@ export function MyBookings() {
             <div className="flex items-center gap-3">
               {booking.status === 'confirmed' && !isToday && (
                 <button
-                  onClick={() => navigate('/passenger')}
+                  onClick={() => openRebookDialog(booking)}
                   className="rounded-xl bg-gradient-to-r from-[#dfae6b] to-[#c99a5a] px-4 py-3 font-semibold text-white shadow-md transition-all hover:from-[#c99a5a] hover:to-[#b8894a] hover:shadow-lg"
                 >
                   Book Again
@@ -459,6 +573,90 @@ export function MyBookings() {
           </div>
         )}
       </div>
+
+      {isRebookDialogOpen && activeRebookBooking && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4 py-6 backdrop-blur-sm">
+          <div className="relative w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
+            <button
+              onClick={closeRebookDialog}
+              className="absolute right-4 top-4 rounded-full bg-slate-100 p-2 text-slate-600 transition-colors hover:bg-slate-200"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="mb-6 pr-10">
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-[#264b8d]/10 px-3 py-1 text-sm font-semibold text-[#264b8d]">
+                <Calendar className="h-4 w-4" />
+                Select a new date
+              </div>
+              <h3 className="text-2xl font-bold text-slate-900">Book again for {activeRebookBooking.busNumber}</h3>
+              <p className="mt-2 text-sm text-slate-600">
+                Choose a new journey date. We’ll check whether this bus is available and then open the seat layout.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="rebook-date" className="text-sm font-semibold text-slate-700">
+                Journey date
+              </label>
+              <input
+                id="rebook-date"
+                type="date"
+                min={toDateInputValue(new Date())}
+                value={rebookDate}
+                onChange={(event) => setRebookDate(event.target.value)}
+                className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-slate-900 outline-none transition-colors focus:border-[#264b8d] focus:ring-2 focus:ring-[#264b8d]/20"
+              />
+            </div>
+
+            {rebookError && (
+              <div className="mt-4 flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{rebookError}</span>
+              </div>
+            )}
+
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                onClick={closeRebookDialog}
+                className="rounded-xl border border-slate-300 px-4 py-3 font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => void handleConfirmRebook()}
+                disabled={isRebookSearching}
+                className="rounded-xl bg-gradient-to-r from-[#264b8d] to-[#1e3a6d] px-5 py-3 font-semibold text-white shadow-md transition-all hover:from-[#1e3a6d] hover:to-[#17305a] disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {isRebookSearching ? 'Checking availability...' : 'Continue to seats'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeRebookBooking && activeRebookBus && (
+        <SeatSelectionModal
+          bus={activeRebookBus}
+          searchData={{
+            date: rebookDate,
+            fullName: userProfile?.fullName || currentUser?.displayName || 'Passenger',
+              origin: activeRebookBooking.origin || activeRebookBus.origin,
+              destination: activeRebookBooking.destination || activeRebookBus.destination,
+              time: activeRebookBooking.time || activeRebookBus.departureTime,
+          }}
+          price={getRebookPrice()}
+          duration={formatDuration(activeRebookBus.departureTime, activeRebookBus.arrivalTime)}
+            boardingTime={activeRebookBooking.time || activeRebookBus.departureTime}
+          isOpen={isSeatModalOpen}
+          onClose={() => {
+            setIsSeatModalOpen(false);
+            setActiveRebookBus(null);
+            setActiveRebookBooking(null);
+            setRebookDate('');
+          }}
+        />
+      )}
 
       <footer className="mt-16 border-t border-slate-700 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 py-16 text-slate-300">
         <div className="w-full px-6 lg:px-10">

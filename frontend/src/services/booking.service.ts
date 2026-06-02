@@ -9,6 +9,9 @@ const getAuthToken = async () => {
 
 export const createBooking = async (bookingData: {
   busNumber: string;
+  origin: string;
+  destination: string;
+  time: string;
   seats: string[];
   journeyDate: string;
   totalAmount: number;

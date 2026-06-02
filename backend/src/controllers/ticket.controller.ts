@@ -25,40 +25,7 @@ const parseQrPayload = (qrData: unknown) => {
   return {};
 };
 
-export const getBookingTickets = async (req: AuthRequest, res: Response) => {
-  try {
-    const rawBookingId = req.params.bookingId;
-    const bookingId = Array.isArray(rawBookingId) ? rawBookingId[0] : rawBookingId;
-    if (!bookingId) {
-      return res.status(400).json({ success: false, message: 'Booking ID is required' });
-    }
 
-    if (!req.user?.uid) {
-      return res.status(401).json({ success: false, message: 'Unauthorized' });
-    }
-
-    const { booking, tickets } = await getTicketsForBooking(bookingId);
-    const bus = await Bus.findOne({ busNumber: booking.busNumber });
-
-    if (!canAccessBooking(req.user.uid, booking.userId)) {
-      return res.status(403).json({ success: false, message: 'Forbidden' });
-    }
-
-    return res.status(200).json({
-      success: true,
-      data: {
-        bookingId,
-        bus,
-        tickets,
-      },
-    });
-  } catch (error: any) {
-    return res.status(404).json({
-      success: false,
-      message: error.message || 'Failed to fetch tickets',
-    });
-  }
-};
 
 export const downloadBookingTickets = async (req: AuthRequest, res: Response) => {
   try {

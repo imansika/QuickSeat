@@ -7,18 +7,6 @@ const getAuthToken = async () => {
   return await authService.getIdToken();
 };
 
-export const getBookingTickets = async (bookingId: string) => {
-  const token = await getAuthToken();
-
-  const response = await axios.get(`${API_URL}/tickets/${bookingId}`, {
-    headers: {
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-  });
-
-  return response.data;
-};
-
 export const downloadBookingTickets = async (bookingId: string) => {
   const token = await getAuthToken();
 

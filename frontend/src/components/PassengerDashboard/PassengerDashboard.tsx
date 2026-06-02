@@ -1206,6 +1206,7 @@ export function PassengerDashboard({
           searchData={searchData}
           price={calculatePrice(getDistanceInKm(), selectedBus.ratePerKm)}
           duration={duration}
+          boardingTime={busTripMetrics[selectedBus._id]?.boardingTime || selectedBus.departureTime}
           isOpen={isSeatModalOpen}
           onClose={() => setIsSeatModalOpen(false)}
         />

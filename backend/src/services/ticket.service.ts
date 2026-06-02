@@ -15,6 +15,7 @@ type TicketEmailContext = {
   busNumber: string;
   origin: string;
   destination: string;
+  time: string;
   tickets: ITicket[];
 };
 
@@ -75,6 +76,7 @@ const buildTicketEmailHtml = (context: TicketEmailContext) => {
       <p>Your payment for booking <strong>${context.bookingId}</strong> was successful.</p>
       <p>The PDF e-ticket is attached to this email and includes the QR code used by the conductor for validation.</p>
       <p><strong>Route:</strong> ${context.origin} to ${context.destination}</p>
+      <p><strong>Time:</strong> ${context.time}</p>
       <p><strong>Bus:</strong> ${context.busNumber}</p>
       <p><strong>Seats:</strong> ${context.tickets.map((ticket) => ticket.seatNumber).join(', ')}</p>
       <p style="color:#475569;">QuickSeat Support</p>
@@ -99,11 +101,13 @@ export const issueTicketsForBooking = async (bookingId: string) => {
   }
 
   const bus = await Bus.findOne({ busNumber: booking.busNumber });
+  const bookingOrigin = String(booking.origin || bus?.origin || 'Origin').trim();
+  const bookingDestination = String(booking.destination || bus?.destination || 'Destination').trim();
+  const bookingTime = String(booking.time || bus?.departureTime || process.env.DEFAULT_DEPARTURE_TIME || 'TBD').trim();
 
   const existingTickets = await Ticket.find({ bookingId });
   const ticketsBySeat = new Map(existingTickets.map((ticket) => [ticket.seatNumber, ticket]));
   const tickets: ITicket[] = [];
-  const departureTime = bus?.departureTime || process.env.DEFAULT_DEPARTURE_TIME || 'TBD';
 
   for (const seatNumber of booking.seats) {
     const normalizedSeat = String(seatNumber).trim().toUpperCase();
@@ -125,7 +129,7 @@ export const issueTicketsForBooking = async (bookingId: string) => {
       email: user.email,
       busNumber: truncatedBusNumber,
       journeyDate: booking.journeyDate,
-      departureTime,
+      departureTime: bookingTime,
       seatNumber: normalizedSeat,
       amount: Number(booking.totalAmount) / booking.seats.length,
       ticketId,
@@ -155,8 +159,9 @@ export const issueTicketsForBooking = async (bookingId: string) => {
         userEmail: user.email,
         bookingId: booking.bookingId,
         busNumber: bus?.busNumber || booking.busNumber,
-        origin: bus?.origin || 'Origin',
-        destination: bus?.destination || 'Destination',
+        origin: bookingOrigin,
+        destination: bookingDestination,
+        time: bookingTime,
         tickets,
       }),
       attachments: [

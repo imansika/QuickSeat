@@ -82,9 +82,11 @@ const busIcon = (doc: PdfDoc, cx: number, cy: number, bodyCol: string, windowCol
 
 const drawTicketPage = (doc: PdfDoc, ctx: TicketPdfContext, ticket: ITicket) => {
   const bus    = ctx.bus;
-  const origin = bus?.origin      || 'N/A';
-  const dest   = bus?.destination || 'N/A';
-  const time   = ticket.departureTime || bus?.departureTime || 'TBD';
+  const origin = String(ctx.booking.origin || bus?.origin || 'N/A');
+  const dest   = String(ctx.booking.destination || bus?.destination || 'N/A');
+  const time   = String(ticket.departureTime || ctx.booking.time || bus?.departureTime || 'TBD');
+  const busOrigin = String(bus?.origin || origin);
+  const busDepartureTime = String(bus?.departureTime || time);
   const qrBuf  = dataUrlToBuffer(ticket.qrCode);
 
   // Page bg
@@ -214,6 +216,11 @@ const drawTicketPage = (doc: PdfDoc, ctx: TicketPdfContext, ticket: ITicket) => 
   border(doc, gX + colW + gGap,  smY, colW, smH, 10, C.blue200, 0.75);
   txt(doc, 'ROUTE',                           gX + colW + gGap + 12, smY + 8,  colW - 24, C.slate500, 7,  true);
   txt(doc, bus?.routeNumber || '—',           gX + colW + gGap + 12, smY + 22, colW - 24, C.slate800, 12, true);
+
+  // Departure note (small, italic)
+  doc.save().fillColor(C.slate500).fontSize(9).font('Helvetica-Oblique')
+    .text(`Note: The bus departs ${busOrigin} at ${busDepartureTime}.`, cX + 22, smY + smH + 8, { width: cW - 44 })
+    .restore();
 
   // ── TEAR LINE ────────────────────────────────────────────────────────────────
   const tearY  = bodyY + BODY_H;

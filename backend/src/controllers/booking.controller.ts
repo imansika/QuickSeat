@@ -22,16 +22,25 @@ const generateBookingId = () => {
 
 export const createBooking = async (req: AuthRequest, res: Response) => {
   try {
-    const { busNumber, seats, journeyDate, totalAmount } = req.body;
+    const { busNumber, origin, destination, time, seats, journeyDate, totalAmount } = req.body;
 
     if (!req.user?.uid) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
-    if (!busNumber || !Array.isArray(seats) || seats.length === 0 || !journeyDate || totalAmount === undefined) {
+    if (
+      !busNumber ||
+      !origin ||
+      !destination ||
+      !time ||
+      !Array.isArray(seats) ||
+      seats.length === 0 ||
+      !journeyDate ||
+      totalAmount === undefined
+    ) {
       return res.status(400).json({
         success: false,
-        message: 'Bus number, seats, journey date, and total amount are required',
+        message: 'Bus number, route origin, destination, time, seats, journey date, and total amount are required',
       });
     }
 
@@ -47,6 +56,9 @@ export const createBooking = async (req: AuthRequest, res: Response) => {
       bookingId: generateBookingId(),
       userId: req.user.uid,
       busNumber: String(busNumber).toUpperCase(),
+      origin: String(origin).trim(),
+      destination: String(destination).trim(),
+      time: String(time).trim(),
       seats,
       journeyDate: parsedDate,
       totalAmount: Number(totalAmount),

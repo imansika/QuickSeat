@@ -376,24 +376,7 @@ export function OperatorDashboard({
               </div>
             </button>
 
-            <button
-              onClick={() => setActiveView('history')}
-              className={`w-full flex items-center gap-4 px-5 py-4 rounded-xl text-left transition-all group shadow-md hover:shadow-xl ${
-                activeView === 'history' ? 'bg-white text-[#264b8d]' : 'text-white hover:bg-white hover:text-[#264b8d]'
-              }`}
-            >
-              <div className={`p-2.5 rounded-xl transition-colors ${
-                activeView === 'history' ? 'bg-[#264b8d]/10' : 'bg-white/20 group-hover:bg-[#3d5fa3]/10'
-              }`}>
-                <History className={`w-6 h-6 ${
-                  activeView === 'history' ? 'text-[#264b8d]' : 'text-white group-hover:text-[#3d5fa3]'
-                }`} />
-              </div>
-              <div>
-                <p className="font-bold text-base">Trip History</p>
-                <p className="text-sm opacity-80 group-hover:opacity-60">Past trips</p>
-              </div>
-            </button>
+           
           </nav>
         </div>
       </div>
@@ -795,19 +778,6 @@ export function OperatorDashboard({
           {/* Revenue View */}
           {activeView === 'revenue' && <RevenueReport />}
 
-          {/* Trip History View */}
-          {activeView === 'history' && (
-            <div>
-              <div className="mb-10">
-                <h1 className="text-3xl font-bold text-slate-900 mb-3">Trip History</h1>
-                <p className="text-lg text-slate-600">View past trips and bookings</p>
-              </div>
-              <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-12 text-center">
-                <History className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                <p className="text-xl text-slate-600">Trip history coming soon...</p>
-              </div>
-            </div>
-          )}
         </div>
       </div>
       </div>

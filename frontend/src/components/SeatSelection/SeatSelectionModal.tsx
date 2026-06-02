@@ -20,6 +20,7 @@ interface SearchData {
   fullName?: string;
   origin?: string;
   destination?: string;
+  time?: string;
 }
 
 interface SeatSelectionModalProps {
@@ -27,6 +28,7 @@ interface SeatSelectionModalProps {
   searchData: SearchData;
   price: number;
   duration: string;
+  boardingTime?: string;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -36,6 +38,7 @@ export function SeatSelectionModal({
   searchData, 
   price, 
   duration, 
+  boardingTime,
   isOpen, 
   onClose 
 }: SeatSelectionModalProps) {
@@ -193,6 +196,9 @@ export function SeatSelectionModal({
 
       const bookingResponse = await createBooking({
         busNumber: bus.busNumber,
+        origin: searchData.origin || bus.origin,
+        destination: searchData.destination || bus.destination,
+        time: boardingTime || searchData.time || bus.departureTime,
         seats: selectedSeats,
         journeyDate: searchData.date,
         totalAmount: price * selectedSeats.length + 50,
