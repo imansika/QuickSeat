@@ -201,7 +201,7 @@ export function SeatSelectionModal({
         time: boardingTime || searchData.time || bus.departureTime,
         seats: selectedSeats,
         journeyDate: searchData.date,
-        totalAmount: price * selectedSeats.length + 50,
+        totalAmount: price * selectedSeats.length,
       });
 
       const booking = bookingResponse.data;
@@ -495,13 +495,9 @@ export function SeatSelectionModal({
                       <span className="text-slate-600">Seat Price</span>
                       <span className="font-semibold text-slate-900">Rs. {price} x {selectedSeats.length || 1}</span>
                     </div>
-                    <div className="flex justify-between items-center mb-3">
-                      <span className="text-slate-600">Service Fee</span>
-                      <span className="font-semibold text-slate-900">Rs. 50</span>
-                    </div>
                     <div className="flex justify-between items-center pt-3 border-t-2 border-slate-300">
                       <span className="font-bold text-lg text-slate-900">Total</span>
-                      <span className="font-bold text-2xl text-[#264b8d]">Rs. {price * (selectedSeats.length || 1) + 50}</span>
+                      <span className="font-bold text-2xl text-[#264b8d]">Rs. {price * (selectedSeats.length || 1)}</span>
                     </div>
                   </div>
                 </div>

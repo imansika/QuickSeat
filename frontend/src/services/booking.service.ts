@@ -123,3 +123,26 @@ export const getBookedSeats = async (busNumber: string, date: string) => {
     throw { message: message || 'Failed to fetch booked seats' };
   }
 };
+
+export const getTripPassengerDetails = async (date: string, busNumber: string, time: string) => {
+  try {
+    const token = await getAuthToken();
+    const response = await axios.get(`${API_URL}/bookings/trip-passengers`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      params: {
+        date,
+        busNumber,
+        time,
+      },
+    });
+
+    return response.data;
+  } catch (error: unknown) {
+    const resp = (error as { response?: { data?: unknown } })?.response?.data;
+    if (resp) throw resp;
+    const message = error instanceof Error ? error.message : String(error);
+    throw { message: message || 'Failed to fetch trip passenger details' };
+  }
+};

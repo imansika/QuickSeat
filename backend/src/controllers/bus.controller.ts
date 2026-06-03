@@ -81,6 +81,54 @@ export const getOperatorBuses = async (req: AuthRequest, res: Response) => {
   }
 };
 
+// Get departure times for a given bus number
+export const getDepartureTimesByBusNumber = async (req: AuthRequest, res: Response) => {
+  try {
+    const { busNumber } = req.params;
+
+    if (!busNumber || typeof busNumber !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'Bus number is required',
+      });
+    }
+
+    const normalizedBusNumber = busNumber.trim().toUpperCase();
+    const buses = await Bus.find({ busNumber: normalizedBusNumber })
+      .select('busNumber departureTime routeNumber origin destination')
+      .sort({ departureTime: 1 });
+
+    if (buses.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Bus not found',
+      });
+    }
+
+    const departureTimes = Array.from(
+      new Set(
+        buses
+          .map((bus) => String(bus.departureTime || '').trim())
+          .filter(Boolean)
+      )
+    ).sort((left, right) => left.localeCompare(right));
+
+    return res.status(200).json({
+      success: true,
+      busNumber: normalizedBusNumber,
+      count: departureTimes.length,
+      data: departureTimes,
+    });
+  } catch (error: any) {
+    console.error('Error fetching departure times:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch departure times',
+      error: error.message,
+    });
+  }
+};
+
 // Get buses operating on weekdays (daily + weekdays)
 export const getWeekdayOperatingBuses = async (req: AuthRequest, res: Response) => {
   try {
