@@ -4,6 +4,7 @@ import { verifyFirebaseToken, checkRole } from '../middleware/auth.middleware';
 import {
   registerBus,
   getOperatorBuses,
+  getDepartureTimesByBusNumber,
   getWeekdayOperatingBuses,
   getWeekendOperatingBuses,
   getBusById,
@@ -56,6 +57,13 @@ router.get(
   verifyFirebaseToken,
   checkRole(['operator', 'admin']),
   getOperatorBuses
+);
+
+router.get(
+  '/buses/:busNumber/departure-times',
+  verifyFirebaseToken,
+  checkRole(['operator', 'admin']),
+  getDepartureTimesByBusNumber
 );
 
 

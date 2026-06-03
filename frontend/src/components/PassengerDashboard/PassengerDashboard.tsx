@@ -29,6 +29,8 @@ import { searchAvailableBuses } from "../../services/bus.service";
 import { getBookedSeats } from "../../services/booking.service";
 import type { Bus, BusStop } from "../../types/bus";
 import { SeatSelectionModal } from "../SeatSelection/SeatSelectionModal";
+import toast from 'react-hot-toast';
+
 
 export interface SearchData {
   origin: string;
@@ -97,7 +99,7 @@ export function PassengerDashboard({
         setHasSearched(true);
       } catch (error) {
         console.error("Search error:", error);
-        alert("Failed to search buses. Please try again.");
+        toast.error("Failed to search buses. Please try again.");
       } finally {
         setIsSearching(false);
       }

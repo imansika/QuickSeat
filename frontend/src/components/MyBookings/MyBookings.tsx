@@ -22,6 +22,7 @@ interface Booking {
 }
 
 const ITEMS_PER_PAGE = 6;
+const PAST_TRIP_WINDOW_DAYS = 7;
 const HIDDEN_PAST_BOOKINGS_KEY_PREFIX = 'quickseat_hidden_past_bookings';
 
 const getHiddenPastBookingsStorageKey = (userId?: string) =>
@@ -91,6 +92,14 @@ const isSameDay = (leftValue: string, rightValue: Date) => {
   return left.toDateString() === rightValue.toDateString();
 };
 
+const isWithinPastTripWindow = (journeyDate: string) => {
+  const journey = new Date(journeyDate);
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - PAST_TRIP_WINDOW_DAYS);
+
+  return journey >= cutoff && journey <= new Date();
+};
+
 export function MyBookings() {
   const navigate = useNavigate();
   const { currentUser, userProfile, signOut } = useAuth();
@@ -98,7 +107,6 @@ export function MyBookings() {
   const [upcomingBookings, setUpcomingBookings] = useState<Booking[]>([]);
   const [pastBookings, setPastBookings] = useState<Booking[]>([]);
   const [upcomingPage, setUpcomingPage] = useState(1);
-  const [pastPage, setPastPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRebookDialogOpen, setIsRebookDialogOpen] = useState(false);
@@ -127,15 +135,24 @@ export function MyBookings() {
         }
 
         const hiddenPastBookingIds = readHiddenPastBookingIds(currentUser?.uid);
+        const latestPastBookings = ((pastResponse.data ?? []) as Booking[])
+          .filter((booking) => !hiddenPastBookingIds.includes(booking.bookingId))
+          .filter((booking) => isWithinPastTripWindow(booking.journeyDate))
+          .sort((left, right) => {
+            const journeyDiff = new Date(right.journeyDate).getTime() - new Date(left.journeyDate).getTime();
+            if (journeyDiff !== 0) {
+              return journeyDiff;
+            }
+
+            const leftCreatedAt = left.createdAt ? new Date(left.createdAt).getTime() : 0;
+            const rightCreatedAt = right.createdAt ? new Date(right.createdAt).getTime() : 0;
+            return rightCreatedAt - leftCreatedAt;
+          })
+          .slice(0, 1);
 
         setUpcomingBookings((upcomingResponse.data ?? []) as Booking[]);
-        setPastBookings(
-          ((pastResponse.data ?? []) as Booking[]).filter(
-            (booking) => !hiddenPastBookingIds.includes(booking.bookingId)
-          )
-        );
+        setPastBookings(latestPastBookings);
         setUpcomingPage(1);
-        setPastPage(1);
       } catch (loadError) {
         if (!isActive) {
           return;
@@ -251,16 +268,10 @@ export function MyBookings() {
   };
 
   const upcomingTotalPages = Math.max(1, Math.ceil(upcomingBookings.length / ITEMS_PER_PAGE));
-  const pastTotalPages = Math.max(1, Math.ceil(pastBookings.length / ITEMS_PER_PAGE));
 
   const paginatedUpcomingBookings = upcomingBookings.slice(
     (upcomingPage - 1) * ITEMS_PER_PAGE,
     upcomingPage * ITEMS_PER_PAGE
-  );
-
-  const paginatedPastBookings = pastBookings.slice(
-    (pastPage - 1) * ITEMS_PER_PAGE,
-    pastPage * ITEMS_PER_PAGE
   );
 
   useEffect(() => {
@@ -268,12 +279,6 @@ export function MyBookings() {
       setUpcomingPage(upcomingTotalPages);
     }
   }, [upcomingPage, upcomingTotalPages]);
-
-  useEffect(() => {
-    if (pastPage > pastTotalPages) {
-      setPastPage(pastTotalPages);
-    }
-  }, [pastPage, pastTotalPages]);
 
   const BookingCard = ({ booking, isPastTrip = false }: { booking: Booking; isPastTrip?: boolean }) => {
     const isToday = isSameDay(booking.journeyDate, new Date());
@@ -523,37 +528,16 @@ export function MyBookings() {
           <div>
             <div className="mb-6 flex items-center gap-3">
               <div className="h-10 w-2 rounded-full bg-gradient-to-b from-slate-400 to-slate-500"></div>
-              <h2 className="text-3xl font-bold text-slate-900">Past Trips</h2>
+              <h2 className="text-3xl font-bold text-slate-900">Latest Past Trip</h2>
               <span className="rounded-full bg-slate-200 px-4 py-1.5 text-sm font-semibold text-slate-700 shadow-md">
                 {pastBookings.length}
               </span>
             </div>
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
-              {paginatedPastBookings.map((booking) => (
+              {pastBookings.map((booking) => (
                 <BookingCard key={booking._id ?? booking.bookingId} booking={booking} isPastTrip />
               ))}
             </div>
-            {pastTotalPages > 1 && (
-              <div className="mt-6 flex items-center justify-center gap-3">
-                <button
-                  onClick={() => setPastPage((prev) => Math.max(1, prev - 1))}
-                  disabled={pastPage === 1}
-                  className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <span>←</span>
-                </button>
-                <span className="text-sm font-medium text-blue-700">
-                  Page {pastPage} of {pastTotalPages}
-                </span>
-                <button
-                  onClick={() => setPastPage((prev) => Math.min(pastTotalPages, prev + 1))}
-                  disabled={pastPage === pastTotalPages}
-                  className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <span>→</span>
-                </button>
-              </div>
-            )}
           </div>
         )}
 
@@ -590,9 +574,7 @@ export function MyBookings() {
                 Select a new date
               </div>
               <h3 className="text-2xl font-bold text-slate-900">Book again for {activeRebookBooking.busNumber}</h3>
-              <p className="mt-2 text-sm text-slate-600">
-                Choose a new journey date. We’ll check whether this bus is available and then open the seat layout.
-              </p>
+              
             </div>
 
             <div className="space-y-2">

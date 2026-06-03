@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 import { Eye, EyeOff, Bus } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import toast from 'react-hot-toast';
 
 export function SignUp() {
   const navigate = useNavigate();
-  const { signUp, signInWithGoogle, signInWithFacebook, userProfile, error, clearError } = useAuth();
+  const { signUp, signInWithGoogle, signInWithFacebook, userProfile, clearError } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [localError, setLocalError] = useState('');
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -21,24 +21,22 @@ export function SignUp() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    setLocalError('');
     clearError();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLocalError('');
     clearError();
 
     
     if (formData.password !== formData.confirmPassword) {
-      setLocalError('Passwords do not match');
+      toast.error('Passwords do not match');
       return;
     }
 
     
     if (formData.password.length < 6) {
-      setLocalError('Password must be at least 6 characters');
+      toast.error('Password must be at least 6 characters');
       return;
     }
 
@@ -50,6 +48,7 @@ export function SignUp() {
         fullName: formData.fullName,
         phone: formData.phone,
       });
+      toast.success(`Welcome, ${formData.fullName}! Account created successfully.`);
       // Wait for userProfile to load, then redirect based on role
       setTimeout(() => {
         const dashboardRoute = userProfile?.role === 'operator' ? '/operator' : '/dashboard';
@@ -57,7 +56,7 @@ export function SignUp() {
       }, 500);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      setLocalError(msg || 'Failed to create account');
+      toast.error(msg || 'Failed to create account');
     } finally {
       setLoading(false);
     }
@@ -66,16 +65,16 @@ export function SignUp() {
   const handleGoogleSignIn = async () => {
     try {
       setLoading(true);
-      setLocalError('');
       clearError();
       await signInWithGoogle();
+      toast.success('Signed in with Google successfully!');
       setTimeout(() => {
         const dashboardRoute = userProfile?.role === 'operator' ? '/operator' : '/dashboard';
         navigate(dashboardRoute);
       }, 500);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      setLocalError(msg || 'Failed to sign in with Google');
+      toast.error(msg || 'Failed to sign in with Google');
     } finally {
       setLoading(false);
     }
@@ -84,16 +83,16 @@ export function SignUp() {
   const handleFacebookSignIn = async () => {
     try {
       setLoading(true);
-      setLocalError('');
       clearError();
       await signInWithFacebook();
+      toast.success('Signed in with Facebook successfully!');
       setTimeout(() => {
         const dashboardRoute = userProfile?.role === 'operator' ? '/operator' : '/dashboard';
         navigate(dashboardRoute);
       }, 500);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      setLocalError(msg || 'Failed to sign in with Facebook');
+      toast.error(msg || 'Failed to sign in with Facebook');
     } finally {
       setLoading(false);
     }
@@ -203,12 +202,7 @@ export function SignUp() {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Error Message */}
-            {(localError || error) && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
-                {localError || error}
-              </div>
-            )}
+           
 
             {/* Full Name */}
             <div className="space-y-2">

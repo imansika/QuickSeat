@@ -59,6 +59,23 @@ export const getOperatorBuses = async () => {
   }
 };
 
+export const getBusDepartureTimes = async (busNumber: string) => {
+  try {
+    const token = await getAuthToken();
+    const response = await axios.get(`${API_URL}/buses/${encodeURIComponent(busNumber)}/departure-times`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error: unknown) {
+    const resp = (error as { response?: { data?: unknown } })?.response?.data;
+    if (resp) throw resp;
+    const message = error instanceof Error ? error.message : String(error);
+    throw { message: message || 'Failed to fetch bus departure times' };
+  }
+};
+
 // Get buses operating on weekdays (daily + weekdays)
 export const getWeekdayOperatingBuses = async () => {
   try {

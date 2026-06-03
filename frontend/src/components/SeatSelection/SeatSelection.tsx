@@ -308,13 +308,9 @@ export function SeatSelection() {
                     <span className="text-slate-600">Seat Price</span>
                     <span className="font-semibold text-slate-900">Rs. {price}</span>
                   </div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-slate-600">Service Fee</span>
-                    <span className="font-semibold text-slate-900">Rs. 50</span>
-                  </div>
                   <div className="flex justify-between items-center pt-2 border-t border-slate-200">
                     <span className="font-bold text-lg text-slate-900">Total</span>
-                    <span className="font-bold text-2xl text-[#264b8d]">Rs. {price + 50}</span>
+                    <span className="font-bold text-2xl text-[#264b8d]">Rs. {price}</span>
                   </div>
                 </div>
               </div>

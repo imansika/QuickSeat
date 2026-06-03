@@ -1,6 +1,8 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth.middleware';
 import Booking from '../models/Booking.model';
+import { User } from '../models/User.model';
+import Ticket from '../models/Ticket.model';
 
 const getUtcStartOfToday = () => {
   const now = new Date();
@@ -13,6 +15,22 @@ const getConfirmedBookingsForUser = async (userId: string, journeyDateFilter: Re
     status: 'confirmed',
     journeyDate: journeyDateFilter,
   }).sort({ journeyDate: 1, createdAt: -1 });
+};
+
+const getUtcDateRange = (dateValue: string) => {
+  const parsedDate = new Date(`${dateValue}T00:00:00Z`);
+
+  if (isNaN(parsedDate.getTime())) {
+    return null;
+  }
+
+  const start = new Date(parsedDate);
+  start.setUTCHours(0, 0, 0, 0);
+
+  const end = new Date(start);
+  end.setUTCDate(end.getUTCDate() + 1);
+
+  return { start, end };
 };
 
 const generateBookingId = () => {
@@ -237,6 +255,75 @@ export const getBookedSeatsByBusAndDate = async (req: AuthRequest, res: Response
       success: false,
       message: 'Failed to fetch booked seats',
       error: error.message,
+    });
+  }
+};
+
+export const getTripPassengerDetails = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  try {
+    const { date, busNumber, time } = req.query;
+
+    if (
+      !date ||
+      typeof date !== 'string' ||
+      !busNumber ||
+      typeof busNumber !== 'string' ||
+      !time ||
+      typeof time !== 'string'
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: 'Date, bus number and time are required',
+      });
+    }
+
+    const dateRange = getUtcDateRange(date);
+
+    const bookings = await Booking.find({
+      busNumber: busNumber.trim().toUpperCase(),
+      time: time.trim(),
+      journeyDate: {
+        $gte: dateRange!.start,
+        $lt: dateRange!.end,
+      },
+      status: 'confirmed',
+    });
+
+    const passengerDetails = await Promise.all(
+      bookings.map(async (booking) => {
+        const user = await User.findOne({
+          uid: booking.userId,
+        }).select('email phone');
+
+        const ticket = await Ticket.findOne({
+          bookingId: booking.bookingId,
+        }).select('ticketId');
+
+        return {
+          email: user?.email || 'N/A',
+          phoneNumber: user?.phone || 'N/A',
+          ticketId: ticket?.ticketId || 'N/A',
+          bookedSeats: booking.seats,
+          origin: booking.origin,
+          destination: booking.destination,
+        };
+      })
+    );
+
+    return res.status(200).json({
+      success: true,
+      count: passengerDetails.length,
+      data: passengerDetails,
+    });
+  } catch (error: any) {
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch trip passenger details',
     });
   }
 };
