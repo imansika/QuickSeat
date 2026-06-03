@@ -574,9 +574,7 @@ export function MyBookings() {
                 Select a new date
               </div>
               <h3 className="text-2xl font-bold text-slate-900">Book again for {activeRebookBooking.busNumber}</h3>
-              <p className="mt-2 text-sm text-slate-600">
-                Choose a new journey date. We’ll check whether this bus is available and then open the seat layout.
-              </p>
+              
             </div>
 
             <div className="space-y-2">

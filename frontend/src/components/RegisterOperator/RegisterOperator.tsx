@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bus, Calendar, Save, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import toast from 'react-hot-toast';
 
 export function RegisterOperator() {
   const navigate = useNavigate();
@@ -16,28 +17,26 @@ export function RegisterOperator() {
     password: '',
     confirmPassword: '',
   });
-  const [error, setError] = useState('');
-
+  
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    setError('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.fullName.trim() || !formData.email.trim() || !formData.phone.trim()) {
-      setError('Please fill in all required fields.');
+      toast.error('Please fill in all required fields.');
       return;
     }
 
     if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters.');
+      toast.error('Password must be at least 6 characters.');
       return;
     }
 
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match.');
+      toast.error('Passwords do not match.');
       return;
     }
 
@@ -50,11 +49,11 @@ export function RegisterOperator() {
         password: formData.password,
       });
 
-      alert(`Operator account created for ${formData.fullName}.`);
+      toast.success(`Operator account created for ${formData.fullName}.`);
       navigate('/operator');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      setError(msg || 'Failed to create operator account.');
+      toast.error(msg || 'Failed to create operator account.');
     } finally {
       setLoading(false);
     }
@@ -89,12 +88,6 @@ export function RegisterOperator() {
             </div>
             
           </div>
-
-          {error && (
-            <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {error}
-            </div>
-          )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid md:grid-cols-2 gap-6">

@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Eye, EyeOff, Bus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import toast from 'react-hot-toast';
+
 
 interface SignInProps {
   onSignUp: () => void;
@@ -9,47 +11,46 @@ interface SignInProps {
 
 export function SignIn({ onSignUp }: SignInProps) {
   const navigate = useNavigate();
-  const { signIn, signInWithGoogle, signInWithFacebook, userProfile, error, clearError } = useAuth();
+  const { signIn, signInWithGoogle, signInWithFacebook, userProfile, clearError } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [localError, setLocalError] = useState('');
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLocalError('');
     clearError();
 
     try {
-      setLoading(true);
-      await signIn(email, password);
-      // Wait a bit for userProfile to load, then redirect based on role
-      setTimeout(() => {
-        const dashboardRoute = userProfile?.role === 'operator' ? '/operator' : '/dashboard';
-        navigate(dashboardRoute);
-      }, 500);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setLocalError(msg || 'Failed to sign in');
-    } finally {
-      setLoading(false);
-    }
+    setLoading(true);
+    await signIn(email, password);
+    toast.success('Welcome back! Signing you in...');  
+    setTimeout(() => {
+      const dashboardRoute = userProfile?.role === 'operator' ? '/operator' : '/dashboard';
+      navigate(dashboardRoute);
+    }, 500);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    toast.error(msg || 'Failed to sign in. Try again.');
+  } finally {
+    setLoading(false);
+  }
   };
 
   const handleGoogleSignIn = async () => {
     try {
       setLoading(true);
-      setLocalError('');
       clearError();
       await signInWithGoogle();
+      toast.success('Welcome back! Signing you in...');  
       setTimeout(() => {
         const dashboardRoute = userProfile?.role === 'operator' ? '/operator' : '/dashboard';
         navigate(dashboardRoute);
       }, 500);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      setLocalError(msg || 'Failed to sign in with Google');
+      toast.error(msg || 'Failed to sign in with Google');
     } finally {
       setLoading(false);
     }
@@ -58,16 +59,16 @@ export function SignIn({ onSignUp }: SignInProps) {
   const handleFacebookSignIn = async () => {
     try {
       setLoading(true);
-      setLocalError('');
       clearError();
       await signInWithFacebook();
+      toast.success('Welcome back! Signing you in...');  
       setTimeout(() => {
         const dashboardRoute = userProfile?.role === 'operator' ? '/operator' : '/dashboard';
         navigate(dashboardRoute);
       }, 500);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      setLocalError(msg || 'Failed to sign in with Facebook');
+      toast.error(msg || 'Failed to sign in with Facebook');
     } finally {
       setLoading(false);
     }
@@ -160,12 +161,6 @@ export function SignIn({ onSignUp }: SignInProps) {
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Error Message */}
-              {(localError || error) && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
-                  {localError || error}
-                </div>
-              )}
 
               {/* Email */}
               <div className="space-y-2">

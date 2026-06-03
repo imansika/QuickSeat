@@ -8,10 +8,14 @@ import { UserProfile } from './components/UserProfile'
 import { useAuth } from './contexts/AuthContext'
 import type { SearchData } from './components/PassengerDashboard/PassengerDashboard'
 import './App.css'
+import { Toaster } from 'react-hot-toast' 
+
 
 function App() {
   return (
+    
     <BrowserRouter>
+    <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
       <AppRoutes />
     </BrowserRouter>
   );

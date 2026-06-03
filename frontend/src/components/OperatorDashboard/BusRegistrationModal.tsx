@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, Hash, Users, MapPin, Clock, Calendar, Save } from 'lucide-react';
 import { registerBus } from '../../services/bus.service';
+import toast from 'react-hot-toast';
 
 interface BusRegistrationModalProps {
   onClose: () => void;
@@ -45,12 +46,12 @@ export function BusRegistrationModal({ onClose, onSuccess }: BusRegistrationModa
     setIsSubmitting(true);
     try {
       await registerBus(formData);
-      alert(`Bus ${formData.busNumber} registered successfully!`);
+      toast.success(`Bus ${formData.busNumber} registered successfully!`);
       onSuccess();
       onClose();
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
-      alert(`Failed to register bus: ${msg || 'Please try again'}`);
+      toast.error(`Failed to register bus: ${msg || 'Please try again'}`);
     } finally {
       setIsSubmitting(false);
     }
