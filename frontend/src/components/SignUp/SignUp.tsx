@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 
 export function SignUp() {
   const navigate = useNavigate();
-  const { signUp, signInWithGoogle, signInWithFacebook, userProfile, clearError } = useAuth();
+  const { signUp, userProfile, clearError } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -62,41 +62,7 @@ export function SignUp() {
     }
   };
 
-  const handleGoogleSignIn = async () => {
-    try {
-      setLoading(true);
-      clearError();
-      await signInWithGoogle();
-      toast.success('Signed in with Google successfully!');
-      setTimeout(() => {
-        const dashboardRoute = userProfile?.role === 'operator' ? '/operator' : '/dashboard';
-        navigate(dashboardRoute);
-      }, 500);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      toast.error(msg || 'Failed to sign in with Google');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleFacebookSignIn = async () => {
-    try {
-      setLoading(true);
-      clearError();
-      await signInWithFacebook();
-      toast.success('Signed in with Facebook successfully!');
-      setTimeout(() => {
-        const dashboardRoute = userProfile?.role === 'operator' ? '/operator' : '/dashboard';
-        navigate(dashboardRoute);
-      }, 500);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      toast.error(msg || 'Failed to sign in with Facebook');
-    } finally {
-      setLoading(false);
-    }
-  };
+  
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 sm:p-6 lg:p-8">
@@ -346,7 +312,6 @@ export function SignUp() {
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
-              onClick={handleGoogleSignIn}
               disabled={loading}
               className="flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-300 rounded-xl hover:bg-slate-50 text-slate-700 bg-white transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -360,7 +325,6 @@ export function SignUp() {
             </button>
             <button
               type="button"
-              onClick={handleFacebookSignIn}
               disabled={loading}
               className="flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-300 rounded-xl hover:bg-slate-50 text-slate-700 bg-white transition disabled:opacity-50 disabled:cursor-not-allowed"
             >

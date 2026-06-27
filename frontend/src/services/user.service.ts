@@ -1,7 +1,7 @@
 import type { CreateOperatorData, UserProfile, UpdateUserData } from '../types/user';
 import { authService } from './auth.service';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL ;
 
 class UserService {
   // Get authorization headers

@@ -11,7 +11,7 @@ interface SignInProps {
 
 export function SignIn({ onSignUp }: SignInProps) {
   const navigate = useNavigate();
-  const { signIn, signInWithGoogle, signInWithFacebook, userProfile, clearError } = useAuth();
+  const { signIn,userProfile, clearError } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -38,50 +38,17 @@ export function SignIn({ onSignUp }: SignInProps) {
   }
   };
 
-  const handleGoogleSignIn = async () => {
-    try {
-      setLoading(true);
-      clearError();
-      await signInWithGoogle();
-      toast.success('Welcome back! Signing you in...');  
-      setTimeout(() => {
-        const dashboardRoute = userProfile?.role === 'operator' ? '/operator' : '/dashboard';
-        navigate(dashboardRoute);
-      }, 500);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      toast.error(msg || 'Failed to sign in with Google');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleFacebookSignIn = async () => {
-    try {
-      setLoading(true);
-      clearError();
-      await signInWithFacebook();
-      toast.success('Welcome back! Signing you in...');  
-      setTimeout(() => {
-        const dashboardRoute = userProfile?.role === 'operator' ? '/operator' : '/dashboard';
-        navigate(dashboardRoute);
-      }, 500);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      toast.error(msg || 'Failed to sign in with Facebook');
-    } finally {
-      setLoading(false);
-    }
-  };
+  
+  
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 sm:p-6 lg:p-8">
       <div className="w-full max-w-6xl bg-white rounded-3xl shadow-2xl overflow-hidden flex">
-        {/* Left Side - Creative Design Panel */}
+        {/* Left Side  */}
         <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#264b8d] to-[#1e3a6d] flex-col items-center justify-center p-8 xl:p-12 relative overflow-hidden">
           {/* Content */}
           <div className="relative z-10 text-center max-w-md">
-            {/* Journey Illustration */}
+    
             <div className="flex justify-center mb-10">
               <div className="relative">
                 <div className="absolute inset-0 bg-[#dfae6b] blur-2xl opacity-30 rounded-full"></div>
@@ -238,7 +205,6 @@ export function SignIn({ onSignUp }: SignInProps) {
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
-                onClick={handleGoogleSignIn}
                 disabled={loading}
                 className="flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-300 rounded-xl hover:bg-slate-50 text-slate-700 bg-white transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -252,7 +218,6 @@ export function SignIn({ onSignUp }: SignInProps) {
               </button>
               <button
                 type="button"
-                onClick={handleFacebookSignIn}
                 disabled={loading}
                 className="flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-300 rounded-xl hover:bg-slate-50 text-slate-700 bg-white transition disabled:opacity-50 disabled:cursor-not-allowed"
               >

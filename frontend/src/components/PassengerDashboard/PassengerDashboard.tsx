@@ -81,8 +81,20 @@ export function PassengerDashboard({
 
   // Load Google Maps API
   const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY ,
   });
+  
+  const mapContainerStyle = {
+    width: "100%",
+    height: "600px",
+    borderRadius: "16px",
+  };
+
+  const center = {
+    lat: 7.8731,
+    lng: 80.7718,
+  };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -472,7 +484,7 @@ export function PassengerDashboard({
     return metrics.durationMinutes;
   };
 
-  // Helper function to get available seats (mock data - in production would come from backend)
+  
   const getAvailableSeats = (busNumber: string, totalCapacity: number): number => {
     const bookedCount = bookedSeatCounts[busNumber.toUpperCase()] || 0;
     return Math.max(totalCapacity - bookedCount, 0);
@@ -499,22 +511,12 @@ export function PassengerDashboard({
     return priceA - priceB;
   });
 
-  const mapContainerStyle = {
-    width: "100%",
-    height: "600px",
-    borderRadius: "16px",
-  };
-
-  const center = {
-    lat: 7.8731,
-    lng: 80.7718,
-  };
-
+  
   
 
   const recentSearches = [
-    { from: "Colombo", to: "Trincomalee", date: "Jan 15, 2026" },
-    { from: "Negombo", to: "Anuradhapura", date: "Jan 10, 2026" },
+    { from: "Anuradhapura", to: "Colombo", date: "Jan 15, 2026" },
+    { from: "Kurunegala", to: "Colombo", date: "Jan 10, 2026" },
   ];
 
   return (

@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { LandingPage, SignUp, SignIn, OperatorDashboard, PaymentFailed } from './components'
 import { PassengerDashboard } from './components/PassengerDashboard/PassengerDashboard'
-import { SeatSelection } from './components/SeatSelection/SeatSelection'
+// import { SeatSelection } from './components/SeatSelection/SeatSelection'
 import { BookingConfirmation } from './components/BookingConfirmation'
 import { MyBookings } from './components/MyBookings'
 import { UserProfile } from './components/UserProfile'
@@ -156,7 +156,7 @@ function AppRoutes() {
         } 
       />
 
-      {/* Seat Selection - Protected Route */}
+      {/* Seat Selection - Protected Route
       <Route 
         path="/select-seat" 
         element={
@@ -166,7 +166,7 @@ function AppRoutes() {
             <Navigate to="/signin" replace />
           )
         } 
-      />
+      /> */}
 
 
       {/* Booking Confirmation - Protected Route */}
