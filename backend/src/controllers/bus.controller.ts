@@ -10,10 +10,10 @@ const GOOGLE_MAPS_API_KEY = process.env.VITE_GOOGLE_MAPS_API_KEY || '';
 // Register a new bus
 export const registerBus = async (req: AuthRequest, res: Response) => {
   try {
-    const { busNumber, routeNumber, origin, destination, stops, seatCapacity, layoutType, departureTime, operatingDays, ratePerKm } = req.body;
+    const { busNumber, routeNumber, origin, destination, stops, seatCapacity, layoutType, departureTime, operatingDays } = req.body;
 
     // Validation
-    if (!busNumber || !routeNumber || !origin || !destination || !seatCapacity || !layoutType || !departureTime || !ratePerKm) {
+    if (!busNumber || !routeNumber || !origin || !destination || !seatCapacity || !layoutType || !departureTime ) {
       return res.status(400).json({ 
         success: false, 
         message: 'All fields are required' 
@@ -40,7 +40,6 @@ export const registerBus = async (req: AuthRequest, res: Response) => {
       layoutType,
       departureTime,
       operatingDays: operatingDays || 'daily',
-      ratePerKm: parseFloat(ratePerKm),
     });
 
     await bus.save();

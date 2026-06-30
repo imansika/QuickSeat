@@ -18,7 +18,7 @@ export const registerBus = async (busData: {
   layoutType: string;
   departureTime: string;
   operatingDays: string;
-  ratePerKm: string;
+
 }) => {
   try {
     const token = await getAuthToken();

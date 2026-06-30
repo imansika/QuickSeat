@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   Bus as BusIcon, Plus, Edit3, Users, Clock, MapPin, TrendingUp,
-  BarChart3, Trash2, Hash, Save, X, Calendar,
+  BarChart3, Trash2,
 } from 'lucide-react';
 import type { Bus } from '../../types/bus';
 

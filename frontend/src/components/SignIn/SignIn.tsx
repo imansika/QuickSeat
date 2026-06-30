@@ -26,6 +26,7 @@ export function SignIn({ onSignUp }: SignInProps) {
     setLoading(true);
     await signIn(email, password);
     toast.success('Welcome back! Signing you in...');  
+    console.log('welcome');
     setTimeout(() => {
       const dashboardRoute = userProfile?.role === 'operator' ? '/operator' : '/dashboard';
       navigate(dashboardRoute);

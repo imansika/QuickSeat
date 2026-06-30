@@ -16,7 +16,6 @@ export interface IBus extends Document {
   layoutType: '2x2' | '1x2' | '2x1' | '1x3' | '3x1';
   departureTime: string;
   operatingDays: 'daily' | 'weekdays' | 'weekends';
-  ratePerKm: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -83,11 +82,7 @@ const BusSchema = new Schema<IBus>(
       enum: ['daily', 'weekdays', 'weekends'],
       default: 'daily',
     },
-    ratePerKm: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
+    
     
   },
   {

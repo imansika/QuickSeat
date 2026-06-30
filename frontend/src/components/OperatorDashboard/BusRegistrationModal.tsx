@@ -18,7 +18,7 @@ export function BusRegistrationModal({ onClose, onSuccess }: BusRegistrationModa
   const [formData, setFormData] = useState({
     busNumber: '', routeNumber: '', origin: '', destination: '',
     seatCapacity: '', layoutType: '2x2', departureTime: '',
-    operatingDays: 'daily', ratePerKm: '',
+    operatingDays: 'daily', 
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -35,7 +35,7 @@ export function BusRegistrationModal({ onClose, onSuccess }: BusRegistrationModa
     if (!formData.seatCapacity || parseInt(formData.seatCapacity) < 1) e.seatCapacity = 'Valid seat capacity is required';
     if (!formData.layoutType) e.layoutType = 'Layout type is required';
     if (!formData.departureTime) e.departureTime = 'Departure time is required';
-    if (!formData.ratePerKm || parseFloat(formData.ratePerKm) < 1) e.ratePerKm = 'Valid rate per km is required';
+   
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -162,14 +162,7 @@ export function BusRegistrationModal({ onClose, onSuccess }: BusRegistrationModa
                   className={inputCls('departureTime')} />
                 {errors.departureTime && <p className="text-red-600 text-sm mt-1">{errors.departureTime}</p>}
               </div>
-              <div>
-                <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
-                  <span className="text-[#264b8d] font-bold">Rs.</span> Rate per 1km
-                </label>
-                <input type="number" value={formData.ratePerKm} onChange={(e) => set('ratePerKm', e.target.value)}
-                  placeholder="e.g., 12" min="1" step="0.5" className={inputCls('ratePerKm')} />
-                {errors.ratePerKm && <p className="text-red-600 text-sm mt-1">{errors.ratePerKm}</p>}
-              </div>
+             
             </div>
           </div>
 

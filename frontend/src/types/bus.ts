@@ -17,7 +17,6 @@ export interface Bus {
   departureTime: string;
   arrivalTime: string;
   operatingDays: 'daily' | 'weekdays' | 'weekends';
-  ratePerKm: number;
   createdAt: string;
   updatedAt: string;
 }
